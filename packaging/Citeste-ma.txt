@@ -30,11 +30,11 @@ se tipăresc întâi paginile pare. Pune teancul înapoi în tavă, cu fața
 tipărită în sus, ca să se tipărească paginile impare.
 
 DEZINSTALARE
-Dublu-clic pe „Dezinstalează driverul.pkg”.
+Dublu-clic pe „Dezinstalează driverul.app”.
 Atenție: driverul Ricoh original are nevoie de Rosetta, deci nu mai merge pe macOS 28.
 
 ------------------------------------------------------------
 NATIVE DRIVER FOR RICOH SP 211 (English)
 Double-click "Instalează driverul.pkg" (Install) and follow the steps.
 If macOS blocks the unsigned package: System Settings → Privacy & Security
-→ "Open Anyway". To remove: double-click "Dezinstalează driverul.pkg".
+→ "Open Anyway". To remove: double-click "Dezinstalează driverul.app".

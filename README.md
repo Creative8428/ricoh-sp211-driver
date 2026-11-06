@@ -15,7 +15,7 @@ Instalatorul:
 - instalează un PPD propriu (`ppd/RICOH-SP-211-native.ppd`), așa că driverul Ricoh original
   nu mai e necesar. La „Adaugă imprimantă”, macOS îl alege automat.
 
-Pentru dezinstalare există **Dezinstalează driverul.pkg** în aceeași imagine.
+Pentru dezinstalare există **Dezinstalează driverul.app** în aceeași imagine.
 Jurnalul instalării: `/var/log/sp211native-install.log`.
 
 Pachetul nu e semnat sau notarizat de Apple (pentru asta e nevoie de un cont Apple Developer).

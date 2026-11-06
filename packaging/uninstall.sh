@@ -10,7 +10,15 @@ if [ -d "$DEST/backup" ]; then
   for f in "$DEST"/backup/*.ppd; do
     [ -f "$f" ] || continue
     q=$(basename "$f" .ppd)
-    lpstat -p "$q" >/dev/null 2>&1 && lpadmin -p "$q" -P "$f" && echo "restored $q"
+    lpstat -p "$q" >/dev/null 2>&1 || continue
+    # restore the original PPD only if its filter still exists; otherwise the
+    # queue could not print at all, so remove it
+    orig=$(sed -n 's|^\*cupsFilter: "[^ ]* [0-9]* \(.*\)"|\1|p' "$f" | head -1)
+    if [ -z "$orig" ] || [ -x "$orig" ]; then
+      lpadmin -p "$q" -P "$f" && echo "restored $q"
+    else
+      lpadmin -x "$q" && echo "removed $q (original filter $orig missing)"
+    fi
   done
 fi
 if [ -f "$DEST/created-queues" ]; then
