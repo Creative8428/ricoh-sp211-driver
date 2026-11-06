@@ -29,6 +29,15 @@ Imprimanta nu întoarce singură foaia. Bifează tipărirea pe ambele fețe:
 se tipăresc întâi paginile pare. Pune teancul înapoi în tavă, cu fața
 tipărită în sus, ca să se tipărească paginile impare.
 
+AIRPRINT PRIN ROUTER (FĂRĂ CABLU)
+Dacă ai un router cu OpenWrt care are port USB, conectează imprimanta la el
+și dă dublu-clic pe „AirPrint pe router.app”. Alege „Instalează”, scrie adresa
+routerului, portul SSH (gol = 22) și parola de root. Apoi:
+  - pe Mac: Configurări sistem → Imprimante și scanere → Adaugă imprimantă →
+    „RICOH SP 211” (AirPrint);
+  - pe iPhone/iPad: Partajare → Tipărire → RICOH SP 211.
+Pentru eliminare, rulează aceeași aplicație și alege „Dezinstalează”.
+
 DEZINSTALARE
 Dublu-clic pe „Dezinstalează driverul.app”.
 Atenție: driverul Ricoh original are nevoie de Rosetta, deci nu mai merge pe macOS 28.
