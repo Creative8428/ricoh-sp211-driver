@@ -1,0 +1,188 @@
+*PPD-Adobe: "4.3"
+*% PPD for Ricoh SP 211 / SP 213 class GDI printers using the native
+*% rastertosp211 CUPS filter (Apple Silicon, no Rosetta required).
+*% Option keywords match those understood by the filter.
+*FormatVersion: "4.3"
+*FileVersion: "1.0"
+*LanguageVersion: English
+*LanguageEncoding: ISOLatin1
+*PCFileName: "SP211NAT.PPD"
+*Manufacturer: "RICOH"
+*Product: "(SP 211)"
+*Product: "(RICOH SP 211)"
+*ModelName: "RICOH SP 211"
+*ShortNickName: "RICOH SP 211 native"
+*NickName: "RICOH SP 211 (native Apple Silicon)"
+*1284DeviceID: "MFG:RICOH;MDL:SP 211;"
+*PSVersion: "(3010.000) 0"
+*LanguageLevel: "3"
+*ColorDevice: False
+*DefaultColorSpace: Gray
+*FileSystem: False
+*Throughput: "23"
+*LandscapeOrientation: Plus90
+*TTRasterizer: Type42
+*cupsVersion: 2.1
+*cupsModelNumber: 0
+*cupsManualCopies: False
+*cupsFilter: "application/vnd.cups-raster 0 /Library/Printers/SP211Native/Filters/rastertosp211"
+
+*% Manual duplex is not available for these sizes (same rule as the filter)
+*UIConstraints: *Duplex *PageSize B5
+*UIConstraints: *PageSize B5 *Duplex
+*UIConstraints: *Duplex *PageSize B6
+*UIConstraints: *PageSize B6 *Duplex
+*UIConstraints: *Duplex *PageSize A5L
+*UIConstraints: *PageSize A5L *Duplex
+*UIConstraints: *Duplex *PageSize A5
+*UIConstraints: *PageSize A5 *Duplex
+*UIConstraints: *Duplex *PageSize A6
+*UIConstraints: *PageSize A6 *Duplex
+*UIConstraints: *Duplex *PageSize Foolscap
+*UIConstraints: *PageSize Foolscap *Duplex
+*UIConstraints: *Duplex *PageSize Oficio
+*UIConstraints: *PageSize Oficio *Duplex
+*UIConstraints: *Duplex *PageSize IndianLG
+*UIConstraints: *PageSize IndianLG *Duplex
+*UIConstraints: *Duplex *PageSize AuFOOLSCAP
+*UIConstraints: *PageSize AuFOOLSCAP *Duplex
+*UIConstraints: *Duplex *PageSize 16K3
+*UIConstraints: *PageSize 16K3 *Duplex
+*UIConstraints: *Duplex *PageSize HalfLetter
+*UIConstraints: *PageSize HalfLetter *Duplex
+
+*OpenUI *PageSize/Media Size: PickOne
+*OrderDependency: 10 AnySetup *PageSize
+*DefaultPageSize: A4
+*PageSize A4/A4: "<</PageSize[595 842]/ImagingBBox null>>setpagedevice"
+*PageSize Letter/Letter: "<</PageSize[612 792]/ImagingBBox null>>setpagedevice"
+*PageSize B5/B5 JIS: "<</PageSize[516 729]/ImagingBBox null>>setpagedevice"
+*PageSize B6/B6 JIS: "<</PageSize[363 516]/ImagingBBox null>>setpagedevice"
+*PageSize A5L/A5 Landscape: "<</PageSize[595 420]/ImagingBBox null>>setpagedevice"
+*PageSize A5/A5: "<</PageSize[420 595]/ImagingBBox null>>setpagedevice"
+*PageSize A6/A6: "<</PageSize[298 420]/ImagingBBox null>>setpagedevice"
+*PageSize Legal/Legal: "<</PageSize[612 1008]/ImagingBBox null>>setpagedevice"
+*PageSize Foolscap/8.5 x 13 in: "<</PageSize[612 936]/ImagingBBox null>>setpagedevice"
+*PageSize Oficio/8.5 x 13.4 in: "<</PageSize[612 965]/ImagingBBox null>>setpagedevice"
+*PageSize IndianLG/8.5 x 13.6 in: "<</PageSize[612 979]/ImagingBBox null>>setpagedevice"
+*PageSize AuFOOLSCAP/8.11 x 13.3 in: "<</PageSize[584 958]/ImagingBBox null>>setpagedevice"
+*PageSize 16K3/16K (195 x 267 mm): "<</PageSize[553 757]/ImagingBBox null>>setpagedevice"
+*PageSize HalfLetter/5.5 x 8.5 in: "<</PageSize[396 612]/ImagingBBox null>>setpagedevice"
+*CloseUI: *PageSize
+
+*OpenUI *PageRegion/Media Size: PickOne
+*OrderDependency: 10 AnySetup *PageRegion
+*DefaultPageRegion: A4
+*PageRegion A4/A4: "<</PageSize[595 842]/ImagingBBox null>>setpagedevice"
+*PageRegion Letter/Letter: "<</PageSize[612 792]/ImagingBBox null>>setpagedevice"
+*PageRegion B5/B5 JIS: "<</PageSize[516 729]/ImagingBBox null>>setpagedevice"
+*PageRegion B6/B6 JIS: "<</PageSize[363 516]/ImagingBBox null>>setpagedevice"
+*PageRegion A5L/A5 Landscape: "<</PageSize[595 420]/ImagingBBox null>>setpagedevice"
+*PageRegion A5/A5: "<</PageSize[420 595]/ImagingBBox null>>setpagedevice"
+*PageRegion A6/A6: "<</PageSize[298 420]/ImagingBBox null>>setpagedevice"
+*PageRegion Legal/Legal: "<</PageSize[612 1008]/ImagingBBox null>>setpagedevice"
+*PageRegion Foolscap/8.5 x 13 in: "<</PageSize[612 936]/ImagingBBox null>>setpagedevice"
+*PageRegion Oficio/8.5 x 13.4 in: "<</PageSize[612 965]/ImagingBBox null>>setpagedevice"
+*PageRegion IndianLG/8.5 x 13.6 in: "<</PageSize[612 979]/ImagingBBox null>>setpagedevice"
+*PageRegion AuFOOLSCAP/8.11 x 13.3 in: "<</PageSize[584 958]/ImagingBBox null>>setpagedevice"
+*PageRegion 16K3/16K (195 x 267 mm): "<</PageSize[553 757]/ImagingBBox null>>setpagedevice"
+*PageRegion HalfLetter/5.5 x 8.5 in: "<</PageSize[396 612]/ImagingBBox null>>setpagedevice"
+*CloseUI: *PageRegion
+
+*DefaultImageableArea: A4
+*ImageableArea A4: "12 12 583.275634765625 829.889770507812"
+*ImageableArea Letter: "12 12 600 780"
+*ImageableArea B5: "12 12 503.905517578125 716.503967285156"
+*ImageableArea B6: "12 12 350.834655761719 503.905517578125"
+*ImageableArea A5L: "12 12 583.275634765625 407.527557373047"
+*ImageableArea A5: "12 12 407.527557373047 583.275634765625"
+*ImageableArea A6: "12 12 285.637817382812 407.527557373047"
+*ImageableArea Legal: "12 12 600 996"
+*ImageableArea Foolscap: "12 12 600 924"
+*ImageableArea Oficio: "12 12 600 952.799987792969"
+*ImageableArea IndianLG: "12 12 600 967.200012207031"
+*ImageableArea AuFOOLSCAP: "12 12 571.919982910156 945.600036621094"
+*ImageableArea 16K3: "12 12 540.755920410156 744.850402832031"
+*ImageableArea HalfLetter: "12 12 384 600"
+
+*DefaultPaperDimension: A4
+*PaperDimension A4: "595.275634765625 841.889770507812"
+*PaperDimension Letter: "612 792"
+*PaperDimension B5: "515.905517578125 728.503967285156"
+*PaperDimension B6: "362.834655761719 515.905517578125"
+*PaperDimension A5L: "595.275634765625 419.527557373047"
+*PaperDimension A5: "419.527557373047 595.275634765625"
+*PaperDimension A6: "297.637817382812 419.527557373047"
+*PaperDimension Legal: "612 1008"
+*PaperDimension Foolscap: "612 936"
+*PaperDimension Oficio: "612 964.799987792969"
+*PaperDimension IndianLG: "612 979.200012207031"
+*PaperDimension AuFOOLSCAP: "583.919982910156 957.600036621094"
+*PaperDimension 16K3: "552.755920410156 756.850402832031"
+*PaperDimension HalfLetter: "396 612"
+
+*MaxMediaWidth: "612.283508300781"
+*MaxMediaHeight: "1009.133911132812"
+*HWMargins: 12 12 12 12
+*CustomPageSize True: "pop pop pop <</PageSize[5 -2 roll]/ImagingBBox null>>setpagedevice"
+*ParamCustomPageSize Width: 1 points 283.464569091797 612.283508300781
+*ParamCustomPageSize Height: 2 points 419.527557373047 1009.133911132812
+*ParamCustomPageSize WidthOffset: 3 points 0 0
+*ParamCustomPageSize HeightOffset: 4 points 0 0
+*ParamCustomPageSize Orientation: 5 int 0 0
+*NonUIConstraints: *Duplex *CustomPageSize True
+*NonUIConstraints: *CustomPageSize True *Duplex
+
+*OpenUI *Resolution/Resolution: PickOne
+*OrderDependency: 60 AnySetup *Resolution
+*DefaultResolution: 600dpi
+*Resolution 600dpi/600 dpi: "<</HWResolution[600 600]/cupsBitsPerColor 8/cupsRowCount 0/cupsRowFeed 0/cupsRowStep 0>>setpagedevice"
+*Resolution 1200x600dpi/1200x600 dpi: "<</HWResolution[1200 600]/cupsBitsPerColor 8/cupsRowCount 0/cupsRowFeed 0/cupsRowStep 0>>setpagedevice"
+*CloseUI: *Resolution
+
+*OpenUI *Duplex/Two-Sided (manual): PickOne
+*OrderDependency: 50 AnySetup *Duplex
+*DefaultDuplex: None
+*Duplex None/Off: "<</Duplex false>>setpagedevice"
+*Duplex DuplexNoTumble/Long-Edge binding: "<</Duplex true/Tumble false>>setpagedevice"
+*Duplex DuplexTumble/Short-Edge binding: "<</Duplex true/Tumble true>>setpagedevice"
+*CloseUI: *Duplex
+
+*OpenUI *ColorModel/Color Mode: PickOne
+*OrderDependency: 10 AnySetup *ColorModel
+*DefaultColorModel: Gray
+*ColorModel Gray/Black and White: "<</cupsColorSpace 3/cupsColorOrder 0/cupsCompression 0>>setpagedevice"
+*CloseUI: *ColorModel
+
+*OpenUI *TonerSave/Toner Save: Boolean
+*OrderDependency: 120 AnySetup *TonerSave
+*DefaultTonerSave: False
+*TonerSave False/Off: "<</cupsInteger4 0>>setpagedevice"
+*TonerSave True/On: "<</cupsInteger4 1>>setpagedevice"
+*CloseUI: *TonerSave
+
+*OpenUI *InputSlot/Media Source: PickOne
+*OrderDependency: 10 AnySetup *InputSlot
+*DefaultInputSlot: Tray1
+*InputSlot Manual/Bypass Tray: "<</MediaPosition 1>>setpagedevice"
+*InputSlot Tray1/Tray 1: "<</MediaPosition 2>>setpagedevice"
+*CloseUI: *InputSlot
+
+*OpenUI *MediaType/Media Type: PickOne
+*OrderDependency: 10 AnySetup *MediaType
+*DefaultMediaType: PlainRecycled
+*MediaType PlainRecycled/Plain and Recycled: "<</MediaType(PlainRecycled)/cupsMediaType 0>>setpagedevice"
+*MediaType Plain1/Plain: "<</MediaType(Plain1)/cupsMediaType 1>>setpagedevice"
+*MediaType Recycled/Recycled: "<</MediaType(Recycled)/cupsMediaType 2>>setpagedevice"
+*MediaType Thick/Thick: "<</MediaType(Thick)/cupsMediaType 3>>setpagedevice"
+*MediaType Thin/Thin: "<</MediaType(Thin)/cupsMediaType 5>>setpagedevice"
+*MediaType Letterhead/Letterhead: "<</MediaType(Letterhead)/cupsMediaType 6>>setpagedevice"
+*MediaType Preprinted/Pre-printed: "<</MediaType(Preprinted)/cupsMediaType 7>>setpagedevice"
+*MediaType Prepunched/Pre-punched: "<</MediaType(Prepunched)/cupsMediaType 8>>setpagedevice"
+*MediaType Bond/Bond: "<</MediaType(Bond)/cupsMediaType 9>>setpagedevice"
+*MediaType Cardstock/Cardstock: "<</MediaType(Cardstock)/cupsMediaType 10>>setpagedevice"
+*MediaType Color/Colored: "<</MediaType(Color)/cupsMediaType 11>>setpagedevice"
+*CloseUI: *MediaType
+
+*DefaultFont: Courier
+*% End of PPD

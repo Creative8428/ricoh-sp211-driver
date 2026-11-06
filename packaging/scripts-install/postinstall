@@ -1,0 +1,49 @@
+#!/bin/bash
+export LANG=C LC_ALL=C   # lpstat output must not be localized
+# Runs as root after the payload (filter + PPD) is installed.
+# 1. Switches existing Ricoh SP 211 queues from Ricoh's Intel-only filter to the native one.
+# 2. If no queue exists but an SP 211 is connected by USB, creates one.
+DEST=/Library/Printers/SP211Native
+FILTER=$DEST/Filters/rastertosp211
+PPD="/Library/Printers/PPDs/Contents/Resources/RICOH SP 211 native.ppd.gz"
+LOG=/var/log/sp211native-install.log
+exec >>"$LOG" 2>&1
+echo "== install $(date)"
+mkdir -p "$DEST/backup"
+
+is_sp211_uri() { [[ "$1" == *RICOH* && ( "$1" == *SP%20211* || "$1" == *"SP 211"* ) ]]; }
+
+found=0
+while read -r _ _ q uri; do
+  q=${q%:}
+  is_sp211_uri "$uri" || continue
+  found=1
+  qppd=/etc/cups/ppd/$q.ppd
+  [ -f "$qppd" ] || continue
+  # keep the original (Ricoh) PPD once so the uninstaller can restore it
+  [ -f "$DEST/backup/$q.ppd" ] || cp "$qppd" "$DEST/backup/$q.ppd"
+  if grep -q "rastertolilo2" "$DEST/backup/$q.ppd"; then
+    tmp=$(mktemp)
+    sed -e "s|^\*cupsFilter:.*|*cupsFilter: \"application/vnd.cups-raster 0 $FILTER\"|" \
+        -e 's|^\*NickName: "\(.*\)"|*NickName: "\1 (native Apple Silicon)"|' \
+        "$DEST/backup/$q.ppd" > "$tmp"
+    lpadmin -p "$q" -P "$tmp" && echo "switched queue $q (patched Ricoh PPD)"
+    rm -f "$tmp"
+  else
+    lpadmin -p "$q" -P "$PPD" && echo "switched queue $q (native PPD)"
+  fi
+  grep -qx "$q" "$DEST/switched-queues" 2>/dev/null || echo "$q" >> "$DEST/switched-queues"
+done < <(lpstat -v 2>/dev/null)
+
+if [ "$found" = 0 ]; then
+  uri=$(lpinfo --include-schemes usb -v 2>/dev/null | awk '{print $2}' | while read -r u; do
+          is_sp211_uri "$u" && { echo "$u"; break; }; done)
+  if [ -n "$uri" ]; then
+    q=RICOH_SP_211
+    lpadmin -p "$q" -E -v "$uri" -P "$PPD" -D "RICOH SP 211" -o printer-is-shared=false \
+      && echo "$q" >> "$DEST/created-queues" && echo "created queue $q for $uri"
+  else
+    echo "no SP 211 queue and none connected; add it later in System Settings > Printers"
+  fi
+fi
+exit 0
