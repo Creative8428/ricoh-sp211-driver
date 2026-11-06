@@ -7,7 +7,27 @@ Ieșirea a fost verificată **octet cu octet** față de driverul original: zeci
 de opțiuni (formate de hârtie, 600 și 1200×600 dpi, economie toner, tip hârtie, tavă, duplex manual,
 titluri, copii), inclusiv prin lanțul complet CUPS (PDF → raster → filtru).
 
-## Instalare
+## Instalare simplă (fără Terminal)
+Deschide `RICOH-SP211-Native-<versiune>.dmg` și dă dublu-clic pe **Instalează driverul.pkg**.
+Instalatorul:
+- trece automat imprimantele SP 211 deja adăugate pe driverul nou;
+- adaugă imprimanta, dacă e conectată prin USB și nu era configurată;
+- instalează un PPD propriu (`ppd/RICOH-SP-211-native.ppd`), așa că driverul Ricoh original
+  nu mai e necesar. La „Adaugă imprimantă”, macOS îl alege automat.
+
+Pentru dezinstalare există **Dezinstalează driverul.pkg** în aceeași imagine.
+Jurnalul instalării: `/var/log/sp211native-install.log`.
+
+Pachetul nu e semnat sau notarizat de Apple (pentru asta e nevoie de un cont Apple Developer).
+Când e descărcat de pe internet, macOS îl blochează la prima deschidere. Se deblochează din
+*Configurări sistem → Confidențialitate și securitate → Deschide oricum* (detalii în `Citește-mă.txt`).
+
+Construirea imaginii DMG:
+```bash
+make dmg      # rezultat: dist/RICOH-SP211-Native-1.0.0.dmg
+```
+
+## Instalare din Terminal
 ```bash
 make
 ./tests/run_tests.sh      # trebuie să afișeze: passed 8, failed 0
@@ -38,6 +58,7 @@ din ieșirea driverului original (`src/dither_matrix.h`).
 - `third_party/jbigkit-2.2`: biblioteca JBIG-KIT a lui Markus Kuhn (GPL v2+), cu o singură modificare
   în `libjbig/jbig.c` (marcată `RICOH_FLUSH`): nu elimină octeții 0 de la finalul fiecărei benzi,
   exact ca encoderul Ricoh. Prin urmare, acest filtru este distribuit sub GPL v2+.
+- `ppd/`: PPD propriu pentru SP 211 (aceleași opțiuni ca PPD-ul Ricoh); `packaging/`: instalatorul `.pkg` și imaginea DMG
 - `research/`: scripturile Python folosite la descifrarea formatului (au nevoie de driverul Ricoh
   original și de Rosetta; sunt păstrate ca documentație).
 - `tests/`: rastere salvate și rezultatele exacte ale driverului original, pentru teste

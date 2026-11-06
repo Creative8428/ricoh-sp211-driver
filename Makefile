@@ -8,4 +8,7 @@ build/rastertosp211: src/rastertosp211.c src/dither_matrix.h $(JBIG)/jbig.c $(JB
 	$(CC) $(CFLAGS) -o $@ src/rastertosp211.c $(JBIG)/jbig.c $(JBIG)/jbig_ar.c $(LDLIBS)
 
 clean:
-	rm -rf build
+	rm -rf build dist
+
+dmg:
+	./packaging/build.sh

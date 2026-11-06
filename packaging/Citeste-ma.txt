@@ -1,0 +1,40 @@
+﻿DRIVER NATIV PENTRU RICOH SP 211
+================================
+
+Funcționează pe Mac-urile cu procesor Apple (M1, M2, M3, M4...) fără Rosetta,
+deci și pe macOS 28 și versiunile următoare.
+
+INSTALARE
+1. Dublu-clic pe „Instalează driverul.pkg” și urmează pașii.
+   Ți se cere parola Mac-ului, ca la orice program care instalează drivere.
+2. Gata. Dacă imprimanta era deja adăugată, folosește automat driverul nou.
+   Dacă e conectată prin USB, dar nu era adăugată, este adăugată automat.
+3. Tipărește o pagină de test.
+
+DACĂ MAC-UL REFUZĂ SĂ DESCHIDĂ PACHETUL
+Pachetul nu este semnat de Apple, așa că macOS poate afișa un mesaj ca
+„nu poate fi deschis deoarece Apple nu poate verifica dacă e malițios”.
+  - Apasă „OK” (sau „Gata”).
+  - Deschide Configurări sistem → Confidențialitate și securitate.
+  - Derulează în jos și apasă „Deschide oricum” lângă numele pachetului.
+  - Confirmă cu parola. Pachetul pornește normal.
+
+ADĂUGAREA MANUALĂ A IMPRIMANTEI
+Configurări sistem → Imprimante și scanere → Adaugă imprimantă.
+Alege imprimanta Ricoh SP 211. La „Utilizare” trebuie să apară
+„RICOH SP 211 (native Apple Silicon)”; dacă nu, alege-l din listă.
+
+TIPĂRIRE PE AMBELE FEȚE
+Imprimanta nu întoarce singură foaia. Bifează tipărirea pe ambele fețe:
+se tipăresc întâi paginile pare. Pune teancul înapoi în tavă, cu fața
+tipărită în sus, ca să se tipărească paginile impare.
+
+DEZINSTALARE
+Dublu-clic pe „Dezinstalează driverul.pkg”.
+Atenție: driverul Ricoh original are nevoie de Rosetta, deci nu mai merge pe macOS 28.
+
+------------------------------------------------------------
+NATIVE DRIVER FOR RICOH SP 211 (English)
+Double-click "Instalează driverul.pkg" (Install) and follow the steps.
+If macOS blocks the unsigned package: System Settings → Privacy & Security
+→ "Open Anyway". To remove: double-click "Dezinstalează driverul.pkg".
