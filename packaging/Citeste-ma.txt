@@ -1,4 +1,4 @@
-DRIVER NATIV PENTRU RICOH SP 211
+﻿DRIVER NATIV PENTRU RICOH SP 211
 ================================
 
 Funcționează pe Mac-urile cu procesor Apple (M1, M2, M3, M4...) fără Rosetta,
