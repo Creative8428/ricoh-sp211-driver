@@ -15,7 +15,7 @@ Instalatorul:
 - instalează un PPD propriu (`ppd/RICOH-SP-211-native.ppd`), așa că driverul Ricoh original
   nu mai e necesar. La „Adaugă imprimantă”, macOS îl alege automat.
 
-Pentru dezinstalare există **Dezinstalează driverul.pkg** în aceeași imagine.
+Pentru dezinstalare există **Dezinstalează driverul.app** în aceeași imagine.
 Jurnalul instalării: `/var/log/sp211native-install.log`.
 
 Pachetul nu e semnat sau notarizat de Apple (pentru asta e nevoie de un cont Apple Developer).
@@ -24,8 +24,30 @@ Când e descărcat de pe internet, macOS îl blochează la prima deschidere. Se 
 
 Construirea imaginii DMG:
 ```bash
-make dmg      # rezultat: dist/RICOH-SP211-Native-1.0.0.dmg
+make dmg      # rezultat: dist/RICOH-SP211-Native-1.1.0.dmg
 ```
+
+## AirPrint prin router (fără cablu)
+SP 211 are doar USB. Conectată la portul USB al unui router cu **OpenWrt**, imprimanta e publicată
+în rețea ca imprimantă **AirPrint**: Mac-urile, iPhone-urile și iPad-urile tipăresc prin Wi-Fi,
+fără driver. Testat pe GL.iNet Flint 2 (MT6000), OpenWrt 25.12.
+
+- **Instalare / dezinstalare:** dublu-clic pe **AirPrint pe router.app** din DMG. Ți se cer adresa
+  routerului, portul SSH și parola de root. Aplicația copiază serverul pe router și rulează
+  `setup.sh install` sau `setup.sh remove`.
+- **Pe router:** `sp211-airprintd` (`src/airprintd.c`), un server IPP mic (~180 KB, static,
+  fără dependențe). Primește pagini ca Apple raster (URF) sau PWG raster, le convertește cu același
+  encoder ca driverul CUPS (`src/lilo2.c`) și le trimite la `/dev/usb/lp0`.
+  - Se instalează `kmod-usb-printer`, serviciul procd `sp211-airprint`, anunțul Avahi
+    și o regulă de firewall pentru TCP 631, **doar din zona LAN**.
+  - Dezinstalarea elimină tot, inclusiv modulul, dacă l-a instalat ea.
+- **Pe Mac:** *Configurări sistem → Imprimante și scanere → Adaugă imprimantă → RICOH SP 211*
+  (AirPrint). Pe iPhone/iPad apare direct în meniul *Tipărire*.
+- **Verificare:** benzile de imagine sunt identice octet cu octet cu driverul Ricoh, iar serverul
+  trece suitele Apple IPP 1.1/2.0 (`./tests/airprint/run.sh`). Duplexul e manual, ca în driver.
+- **Build:** `make router`, care are nevoie de `zig` pentru compilarea încrucișată
+  (`ROUTER_TARGET=aarch64-linux-musl` implicit; pentru alte routere, de ex. `mipsel-linux-musl`).
+  Jurnal pe router: `logread | grep sp211`.
 
 ## Instalare din Terminal
 ```bash
@@ -59,6 +81,7 @@ din ieșirea driverului original (`src/dither_matrix.h`).
   în `libjbig/jbig.c` (marcată `RICOH_FLUSH`): nu elimină octeții 0 de la finalul fiecărei benzi,
   exact ca encoderul Ricoh. Prin urmare, acest filtru este distribuit sub GPL v2+.
 - `ppd/`: PPD propriu pentru SP 211 (aceleași opțiuni ca PPD-ul Ricoh); `packaging/`: instalatorul `.pkg` și imaginea DMG
+- `src/airprintd.c`, `src/lilo2.c`: serverul AirPrint și encoderul comun; `packaging/router/`: scriptul și serviciul pentru OpenWrt
 - `research/`: scripturile Python folosite la descifrarea formatului (au nevoie de driverul Ricoh
   original și de Rosetta; sunt păstrate ca documentație).
 - `tests/`: rastere salvate și rezultatele exacte ale driverului original, pentru teste

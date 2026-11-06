@@ -1,0 +1,20 @@
+#!/bin/sh /etc/rc.common
+# AirPrint server for the Ricoh SP 211 on USB (sp211-airprintd)
+START=95
+STOP=10
+USE_PROCD=1
+
+start_service() {
+	local uuid name
+	uuid=$(cat /etc/sp211-airprint/uuid 2>/dev/null)
+	name=$(cat /etc/sp211-airprint/name 2>/dev/null)
+	[ -n "$name" ] || name="RICOH SP 211"
+	procd_open_instance
+	procd_set_param command /usr/sbin/sp211-airprintd -p 631 -d /dev/usb/lp0 \
+		-s /tmp/sp211-spool -n "$name" ${uuid:+-u "$uuid"}
+	procd_set_param env TZ="$(cat /etc/TZ 2>/dev/null || uci -q get system.@system[0].timezone)"
+	procd_set_param respawn 3600 5 0
+	procd_set_param stdout 1
+	procd_set_param stderr 1
+	procd_close_instance
+}
