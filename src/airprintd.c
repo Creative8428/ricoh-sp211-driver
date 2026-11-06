@@ -19,6 +19,12 @@
  */
 #define _GNU_SOURCE
 #include <arpa/inet.h>
+#include <grp.h>
+#include <pwd.h>
+#include <sys/wait.h>
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -51,6 +57,16 @@ static char cfg_uuid[64];
 static const char *cfg_listen = NULL;
 static int cfg_verbose = 0;
 static const char *cfg_recover = NULL; /* USB recovery command (-R) */
+static const char *cfg_user = NULL;    /* drop root privileges to this user (-U) */
+static long long cfg_max_doc = 100LL * 1024 * 1024; /* max document size (-m MB) */
+static int recover_fd = -1;            /* pipe to the privileged helper */
+
+/* hard limits against resource exhaustion */
+#define MAX_CONNECTIONS   32
+#define MAX_ACTIVE_JOBS   50   /* pending + processing */
+#define MAX_IPP_ATTRS     1000 /* attributes (incl. members) per request */
+#define MAX_COL_DEPTH     8    /* nested collections */
+#define MAX_CHUNK         (64LL * 1024 * 1024)
 static time_t start_time;
 
 static void logmsg(const char *fmt, ...) {
@@ -146,7 +162,8 @@ enum {
   ST_OK = 0x0000, ST_OK_IGNORED = 0x0001, ST_BAD_REQUEST = 0x0400, ST_NOT_FOUND = 0x0406,
   ST_NOT_POSSIBLE = 0x0404, ST_DOC_FORMAT = 0x040a, ST_ATTR_UNSUPPORTED = 0x040b,
   ST_INTERNAL = 0x0500, ST_OP_UNSUPPORTED = 0x0501, ST_VERSION = 0x0503,
-  ST_BAD_CHARSET = 0x040d, ST_JOB_NOT_ACCEPTING = 0x0506,
+  ST_BAD_CHARSET = 0x040d, ST_JOB_NOT_ACCEPTING = 0x0506, ST_BUSY = 0x0507,
+  ST_TOO_LARGE = 0x0409, ST_NOT_AUTHORIZED = 0x0403,
 };
 
 /* parsed attribute (values point into allocated copies) */
@@ -330,7 +347,10 @@ typedef struct {
   int chunked;
   long long remaining; /* content-length mode, or bytes left in chunk */
   int body_done;
+  int close_after; /* request body not consumed: close the connection */
 } conn_t;
+
+static int n_connections = 0; /* protected by jobs_lock */
 
 static ssize_t raw_read(conn_t *c, void *p, size_t n) {
   if (c->pos < c->end) {
@@ -370,7 +390,18 @@ static ssize_t body_read(conn_t *c, void *p, size_t n) {
     char line[64];
     if (read_line(c, line, sizeof line) < 0) return -1;
     if (!line[0] && read_line(c, line, sizeof line) < 0) return -1; /* CRLF after chunk */
-    c->remaining = strtoll(line, NULL, 16);
+    /* strict hex chunk size: no sign, no overflow (a negative size used to
+     * turn into a huge read length) */
+    long long size = 0;
+    int digits = 0;
+    for (const char *h = line; *h && *h != ';' && *h != ' ' && *h != '\t'; h++, digits++) {
+      int v = (*h >= '0' && *h <= '9') ? *h - '0' : (*h >= 'a' && *h <= 'f') ? *h - 'a' + 10
+            : (*h >= 'A' && *h <= 'F') ? *h - 'A' + 10 : -1;
+      if (v < 0 || digits >= 12) return -1;
+      size = size * 16 + v;
+    }
+    if (!digits || size > MAX_CHUNK) return -1;
+    c->remaining = size;
     if (c->remaining == 0) {
       while (read_line(c, line, sizeof line) > 0) {} /* trailers */
       c->body_done = 1;
@@ -378,7 +409,8 @@ static ssize_t body_read(conn_t *c, void *p, size_t n) {
     }
   }
   if (!c->chunked && c->remaining <= 0) { c->body_done = 1; return 0; }
-  if ((long long)n > c->remaining) n = (size_t)c->remaining;
+  if (c->remaining < 0) return -1;
+  if ((unsigned long long)n > (unsigned long long)c->remaining) n = (size_t)c->remaining;
   ssize_t r = raw_read(c, p, n);
   if (r <= 0) return -1;
   c->remaining -= r;
@@ -412,7 +444,7 @@ static int write_all(int fd, const void *p, size_t n) {
 }
 
 /* parses an attribute list from the body; stops after end-of-attributes */
-static int parse_attrs(conn_t *c, ipp_attrs *as, int *group_io, int in_col) {
+static int parse_attrs(conn_t *c, ipp_attrs *as, int *group_io, int in_col, int *budget) {
   ipp_attr *cur = NULL;
   int group = group_io ? *group_io : 0;
   for (;;) {
@@ -438,18 +470,21 @@ static int parse_attrs(conn_t *c, ipp_attrs *as, int *group_io, int in_col) {
     if (in_col) {
       if (tag == TAG_END_COLLECTION) { free(v); return 0; }
       if (tag == TAG_MEMBERNAME) {
+        if (--*budget < 0) { free(v); return -1; }
         cur = attrs_add(as, group, (char *)v, vlen);
         free(v);
         continue;
       }
     }
+    if (--*budget < 0) { free(v); return -1; } /* too many attributes */
     if (nlen) cur = attrs_add(as, group, name, nlen);
     if (!cur) { free(v); return -1; }
     ipp_val *val = attr_addval(cur);
     val->tag = tag; val->len = vlen; val->data = v;
     if (tag == TAG_BEGIN_COLLECTION) {
+      if (in_col >= MAX_COL_DEPTH) return -1; /* nesting too deep */
       val->col = calloc(1, sizeof(ipp_attrs));
-      if (parse_attrs(c, val->col, NULL, 1)) return -1;
+      if (!val->col || parse_attrs(c, val->col, NULL, in_col + 1, budget)) return -1;
     }
   }
 }
@@ -466,6 +501,7 @@ typedef struct job {
   char name[256], user[256], format[64], reason[64];
   char spool[512];
   int have_doc, doc_spooled, closed, cancel;
+  int refs;           /* request handlers using this job outside the lock */
   int copies;
   int duplex, tumble;
   int paper_override; /* lilo2 paper code from media/media-col, -1 = from raster */
@@ -493,6 +529,13 @@ static int printer_state(void) {
   return 3;
 }
 
+static int active_count(void) {
+  int n = 0;
+  for (job_t *j = jobs; j; j = j->next)
+    if (j->state < JS_CANCELED) n++;
+  return n;
+}
+
 static int queued_count(void) {
   int n = 0;
   for (job_t *j = jobs; j; j = j->next)
@@ -505,7 +548,7 @@ static void prune_jobs(void) {
   int n = 0;
   for (job_t **pp = &jobs; *pp;) {
     job_t *j = *pp;
-    if (j->state >= JS_CANCELED && ++n > 50) {
+    if (j->state >= JS_CANCELED && j->refs == 0 && ++n > 50) {
       *pp = j->next;
       free(j);
     } else pp = &j->next;
@@ -835,6 +878,20 @@ done:
   else if (final == JS_ABORTED) logmsg("job %d: aborted (see messages above)", j->id);
 }
 
+/* runs the recovery command and logs its output */
+static void run_recover(void) {
+  char cmd[512];
+  snprintf(cmd, sizeof cmd, "%s 2>&1", cfg_recover);
+  FILE *p = popen(cmd, "r");
+  if (!p) return;
+  char line[256];
+  while (fgets(line, sizeof line, p)) {
+    line[strcspn(line, "\n")] = 0;
+    logmsg("recover: %s", line);
+  }
+  pclose(p);
+}
+
 /* Watches the printer device. If it is missing for 20 s (it disappeared, or
  * was never seen since start), runs the recovery command, then retries after
  * 2 min, 10 min and every 30 min while it stays missing. A printer that is
@@ -863,20 +920,21 @@ static void *usb_monitor(void *arg) {
     if (now < next_try) continue;
     attempt++;
     logmsg("printer missing for %ld s, USB power-cycle attempt %d", (long)(now - missing_since), attempt);
-    char cmd[512];
-    snprintf(cmd, sizeof cmd, "%s 2>&1", cfg_recover);
-    FILE *p = popen(cmd, "r");
-    if (p) {
-      char line[256];
-      while (fgets(line, sizeof line, p)) {
-        line[strcspn(line, "\n")] = 0;
-        logmsg("recover: %s", line);
-      }
-      pclose(p);
+    if (recover_fd >= 0) {
+      /* unprivileged: ask the root helper (it only ever runs cfg_recover) */
+      if (write(recover_fd, "R", 1) != 1) logmsg("recover: helper not available");
+    } else {
+      run_recover();
     }
     next_try = now + (attempt == 1 ? 120 : attempt == 2 ? 600 : 1800);
   }
   return NULL;
+}
+
+static pid_t helper_child = 0;
+static void helper_term(int sig) {
+  if (helper_child > 0) kill(helper_child, SIGTERM);
+  _exit(sig == SIGTERM ? 0 : 1);
 }
 
 static void *worker(void *arg) {
@@ -912,10 +970,23 @@ typedef struct {
   int status;
   const char *status_msg;
   ipp_attrs unsupported_names; /* names only */
+  int too_large;                /* document exceeded cfg_max_doc */
 } req_t;
 
 static void printer_uri(req_t *q, char *buf, size_t n) {
   snprintf(buf, n, "ipp://%s/ipp/print", q->host[0] ? q->host : "localhost");
+}
+
+/* replaces control characters (log injection, odd printer display) */
+static void sanitize(char *t) {
+  for (unsigned char *p = (unsigned char *)t; *p; p++)
+    if (*p < 0x20 || *p == 0x7f) *p = '?';
+}
+
+/* is the requesting user the owner of the job? */
+static int is_owner(req_t *q, job_t *j) {
+  const char *me = attr_str(&q->attrs, "requesting-user-name");
+  return me && !strcmp(me, j->user);
 }
 
 static void resp_begin(req_t *q, int status) {
@@ -1107,6 +1178,7 @@ static void printer_attrs(req_t *q) {
 }
 
 static void job_attrs(req_t *q, job_t *j, int full) {
+  int mine = is_owner(q, j);
   obuf *b = &q->resp;
   char uri[512], juri[600];
   printer_uri(q, uri, sizeof uri);
@@ -1118,9 +1190,10 @@ static void job_attrs(req_t *q, job_t *j, int full) {
   if (!full || wants(q, "job-state-reasons", "job-description"))
     add_str(b, TAG_KEYWORD, "job-state-reasons", j->reason);
   if (!full) return;
-  if (wants(q, "job-name", "job-description")) add_str(b, TAG_NAME, "job-name", j->name);
+  /* other users only see that a job exists, not its name or owner */
+  if (wants(q, "job-name", "job-description")) add_str(b, TAG_NAME, "job-name", mine ? j->name : "Hidden");
   if (wants(q, "job-originating-user-name", "job-description"))
-    add_str(b, TAG_NAME, "job-originating-user-name", j->user);
+    add_str(b, TAG_NAME, "job-originating-user-name", mine ? j->user : "Hidden");
   if (wants(q, "job-printer-uri", "job-description")) add_str(b, TAG_URI, "job-printer-uri", uri);
   if (wants(q, "job-printer-up-time", "job-description"))
     add_int(b, TAG_INTEGER, "job-printer-up-time", (int)(time(NULL) - start_time + 1));
@@ -1180,10 +1253,13 @@ static int apply_job_template(req_t *q, job_t *j) {
 
 static job_t *new_job(req_t *q) {
   job_t *j = calloc(1, sizeof *j);
+  if (!j) return NULL;
   const char *name = attr_str(&q->attrs, "job-name");
   const char *user = attr_str(&q->attrs, "requesting-user-name");
   snprintf(j->name, sizeof j->name, "%s", name ? name : "Untitled");
   snprintf(j->user, sizeof j->user, "%s", user ? user : "airprint");
+  sanitize(j->name);
+  sanitize(j->user);
   j->state = JS_PENDING;
   strcpy(j->reason, "none");
   j->created = time(NULL);
@@ -1201,14 +1277,21 @@ static void queue_job(job_t *j) {
 
 /* stores the remaining request body as the job document */
 static int spool_document(req_t *q, job_t *j) {
-  int fd = open(j->spool, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+  unlink(j->spool);
+  int fd = open(j->spool, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
   if (fd < 0) { logmsg("cannot create %s: %s", j->spool, strerror(errno)); return -1; }
   unsigned char buf[65536];
   ssize_t r;
   long long total = 0;
   while ((r = body_read(q->c, buf, sizeof buf)) > 0) {
-    if (write_all(fd, buf, (size_t)r)) { close(fd); return -1; }
     total += r;
+    if (total > cfg_max_doc) {
+      logmsg("job %d: document larger than %lld MB, rejected", j->id, cfg_max_doc >> 20);
+      close(fd); unlink(j->spool);
+      q->too_large = 1;
+      return -1;
+    }
+    if (write_all(fd, buf, (size_t)r)) { close(fd); unlink(j->spool); return -1; }
   }
   close(fd);
   if (r < 0) return -1;
@@ -1261,21 +1344,35 @@ static void handle_ipp(req_t *q) {
 
   case OP_PRINT_JOB:
   case OP_CREATE_JOB: {
+    pthread_mutex_lock(&jobs_lock);
+    int busy = active_count() >= MAX_ACTIVE_JOBS;
+    pthread_mutex_unlock(&jobs_lock);
+    if (busy) { q->c->close_after = 1; resp_begin(q, ST_BUSY); break; }
     job_t *j = new_job(q);
+    if (!j) { q->c->close_after = 1; resp_begin(q, ST_INTERNAL); break; }
     int st = apply_job_template(q, j);
-    if (st) { free(j); body_drain(q->c); resp_begin(q, st); break; }
+    if (st) { free(j); q->c->close_after = 1; resp_begin(q, st); break; }
+    j->refs = 1; /* held by this handler until the end of the operation */
     queue_job(j);
     if (q->op == OP_PRINT_JOB) {
-      if (spool_document(q, j)) {
-        pthread_mutex_lock(&jobs_lock);
-        j->state = JS_ABORTED; strcpy(j->reason, "aborted-by-system");
+      int failed = spool_document(q, j);
+      pthread_mutex_lock(&jobs_lock);
+      j->refs--;
+      if (failed) {
+        if (j->state < JS_CANCELED) {
+          j->state = JS_ABORTED; strcpy(j->reason, "aborted-by-system"); j->completed = time(NULL);
+        }
         pthread_mutex_unlock(&jobs_lock);
-        resp_begin(q, ST_INTERNAL);
+        q->c->close_after = 1;
+        resp_begin(q, q->too_large ? ST_TOO_LARGE : ST_INTERNAL);
         break;
       }
-      pthread_mutex_lock(&jobs_lock);
-      j->have_doc = j->doc_spooled = 1;
+      if (j->state == JS_PENDING) j->have_doc = j->doc_spooled = 1;
       pthread_cond_signal(&jobs_cond);
+      pthread_mutex_unlock(&jobs_lock);
+    } else {
+      pthread_mutex_lock(&jobs_lock);
+      j->refs--;
       pthread_mutex_unlock(&jobs_lock);
     }
     logmsg("job %d: \"%s\" from %s (%s)", j->id, j->name, j->user, q->op == OP_PRINT_JOB ? "print" : "create");
@@ -1296,15 +1393,37 @@ static void handle_ipp(req_t *q) {
     int last = ld->vals[0].len == 1 && ld->vals[0].data[0];
     pthread_mutex_lock(&jobs_lock);
     job_t *j = job_from_request(q);
-    int ok = j && j->state == JS_PENDING && !j->have_doc && !j->doc_spooled;
+    int ok = j && j->state == JS_PENDING && !j->have_doc && !j->doc_spooled && !j->refs;
+    if (ok) {
+      j->refs++;
+      const char *fmt = attr_str(&q->attrs, "document-format");
+      if (fmt) {
+        if (strcmp(fmt, "image/urf") && strcmp(fmt, "image/pwg-raster") &&
+            strcmp(fmt, "application/octet-stream")) ok = -1;
+        else snprintf(j->format, sizeof j->format, "%s", fmt);
+      }
+      if (ok < 0) j->refs--;
+    }
     pthread_mutex_unlock(&jobs_lock);
-    if (!ok) { body_drain(q->c); resp_begin(q, j ? ST_NOT_POSSIBLE : ST_NOT_FOUND); break; }
-    const char *fmt = attr_str(&q->attrs, "document-format");
-    if (fmt) snprintf(j->format, sizeof j->format, "%s", fmt);
-    if (spool_document(q, j)) { resp_begin(q, ST_INTERNAL); break; }
+    if (ok <= 0) {
+      q->c->close_after = 1;
+      resp_begin(q, ok < 0 ? ST_DOC_FORMAT : j ? ST_NOT_POSSIBLE : ST_NOT_FOUND);
+      break;
+    }
+    int failed = spool_document(q, j);
     pthread_mutex_lock(&jobs_lock);
+    j->refs--;
+    if (failed) {
+      if (j->state < JS_CANCELED) {
+        j->state = JS_ABORTED; strcpy(j->reason, "aborted-by-system"); j->completed = time(NULL);
+      }
+      pthread_mutex_unlock(&jobs_lock);
+      q->c->close_after = 1;
+      resp_begin(q, q->too_large ? ST_TOO_LARGE : ST_INTERNAL);
+      break;
+    }
     j->doc_spooled = 1;
-    if (last || j->closed) { j->have_doc = 1; pthread_cond_signal(&jobs_cond); }
+    if ((last || j->closed) && j->state == JS_PENDING) { j->have_doc = 1; pthread_cond_signal(&jobs_cond); }
     resp_begin(q, ST_OK);
     job_attrs(q, j, 0);
     pthread_mutex_unlock(&jobs_lock);
@@ -1331,6 +1450,7 @@ static void handle_ipp(req_t *q) {
     job_t *j = job_from_request(q);
     int st = ST_OK;
     if (!j) st = ST_NOT_FOUND;
+    else if (!is_owner(q, j)) st = ST_NOT_AUTHORIZED;
     else if (j->state >= JS_CANCELED) st = ST_NOT_POSSIBLE;
     else {
       j->cancel = 1;
@@ -1437,8 +1557,9 @@ static void status_page(conn_t *c, int keep) {
     static const char *names[] = {"", "", "", "pending", "held", "printing", "stopped",
                                   "canceled", "aborted", "completed"};
     char row[256];
-    snprintf(row, sizeof row, "<tr><td>%d</td><td>%.60s</td><td>%.40s</td><td>%s</td></tr>",
-             j->id, j->name, j->user, names[j->state]);
+    /* job names and owners are not shown (privacy; no user text in HTML) */
+    snprintf(row, sizeof row, "<tr><td>%d</td><td>%s</td><td>%d</td></tr>",
+             j->id, names[j->state], j->impressions);
     strncat(rows, row, sizeof rows - strlen(rows) - 1);
   }
   pthread_mutex_unlock(&jobs_lock);
@@ -1446,7 +1567,7 @@ static void status_page(conn_t *c, int keep) {
     "<!doctype html><html><head><meta charset=\"utf-8\"><title>%s</title></head>"
     "<body style=\"font-family:-apple-system,sans-serif\"><h1>%s</h1>"
     "<p>State: %s%s &middot; queued jobs: %d</p>"
-    "<table border=1 cellpadding=4><tr><th>Job</th><th>Name</th><th>User</th><th>State</th></tr>%s</table>"
+    "<table border=1 cellpadding=4><tr><th>Job</th><th>State</th><th>Pages</th></tr>%s</table>"
     "</body></html>",
     cfg_name, cfg_name, pstate == 4 ? "printing" : "idle",
     strcmp(reason, "none") ? " (printer not connected)" : "", queued, rows);
@@ -1461,7 +1582,7 @@ static void *conn_thread(void *arg) {
 
   for (;;) {
     char line[2048], method[16] = "", path[1024] = "", host[256] = "";
-    int keep = 1, expect = 0;
+    int keep = 1, expect = 0, bad_length = 0;
     c->chunked = 0; c->remaining = 0; c->body_done = 0;
 
     if (read_line(c, line, sizeof line) < 0) break;
@@ -1474,13 +1595,23 @@ static void *conn_thread(void *arg) {
       *colon = 0;
       char *v = colon + 1;
       while (*v == ' ') v++;
-      if (!strcasecmp(line, "Content-Length")) c->remaining = strtoll(v, NULL, 10);
+      if (!strcasecmp(line, "Content-Length")) {
+        char *end;
+        errno = 0;
+        long long cl = strtoll(v, &end, 10);
+        if (errno || end == v || *end || cl < 0) bad_length = 1;
+        else c->remaining = cl;
+      }
       else if (!strcasecmp(line, "Transfer-Encoding") && strcasestr(v, "chunked")) c->chunked = 1;
       else if (!strcasecmp(line, "Host")) snprintf(host, sizeof host, "%s", v);
       else if (!strcasecmp(line, "Connection") && !strcasecmp(v, "close")) keep = 0;
       else if (!strcasecmp(line, "Expect") && strcasestr(v, "100-continue")) expect = 1;
     }
     DBG("%s %s (host %s, %s)", method, path, host, c->chunked ? "chunked" : "length");
+    if (bad_length) {
+      http_send(c, 400, "Bad Request", "text/plain", "", 0, 0);
+      break;
+    }
 
     if (!strcmp(method, "GET") || !strcmp(method, "HEAD")) {
       body_drain(c);
@@ -1506,8 +1637,8 @@ static void *conn_thread(void *arg) {
     q.version = h[0] << 8 | h[1];
     q.op = h[2] << 8 | h[3];
     q.reqid = (int)be32(h + 4);
-    int group = 0;
-    if (parse_attrs(c, &q.attrs, &group, 0)) {
+    int group = 0, budget = MAX_IPP_ATTRS;
+    if (parse_attrs(c, &q.attrs, &group, 0, &budget)) {
       DBG("malformed IPP request");
       http_send(c, 400, "Bad Request", "text/plain", "", 0, 0);
       attrs_free(&q.attrs);
@@ -1516,7 +1647,8 @@ static void *conn_thread(void *arg) {
     DBG("IPP op 0x%04x id %d", q.op, q.reqid);
     if (h[0] < 1 || h[0] > 2) resp_begin(&q, ST_VERSION);
     else handle_ipp(&q);
-    body_drain(c);
+    if (c->close_after || q.status != ST_OK) keep = 0; /* do not read rejected documents */
+    else body_drain(c);
     ob_u8(&q.resp, TAG_END);
     http_send(c, 200, "OK", "application/ipp", q.resp.d, q.resp.len, keep);
     lilo2_buf_free(&q.resp);
@@ -1525,6 +1657,9 @@ static void *conn_thread(void *arg) {
   }
   close(c->fd);
   free(c);
+  pthread_mutex_lock(&jobs_lock);
+  n_connections--;
+  pthread_mutex_unlock(&jobs_lock);
   return NULL;
 }
 
@@ -1543,7 +1678,7 @@ static void make_uuid(void) {
 
 int main(int argc, char *argv[]) {
   int opt;
-  while ((opt = getopt(argc, argv, "p:d:s:n:u:l:R:v")) != -1) {
+  while ((opt = getopt(argc, argv, "p:d:s:n:u:l:R:U:m:v")) != -1) {
     switch (opt) {
     case 'p': cfg_port = atoi(optarg); break;
     case 'd': cfg_device = optarg; break;
@@ -1552,9 +1687,12 @@ int main(int argc, char *argv[]) {
     case 'u': snprintf(cfg_uuid, sizeof cfg_uuid, "%s", optarg); break;
     case 'l': cfg_listen = optarg; break;
     case 'R': cfg_recover = optarg; break;
+    case 'U': cfg_user = optarg; break;
+    case 'm': cfg_max_doc = atoll(optarg) * 1024 * 1024; if (cfg_max_doc <= 0) cfg_max_doc = 100LL << 20; break;
     case 'v': cfg_verbose = 1; break;
     default:
-      fprintf(stderr, "usage: %s [-p port] [-d device] [-s spooldir] [-n name] [-u uuid] [-l addr] [-R recover-cmd] [-v]\n", argv[0]);
+      fprintf(stderr, "usage: %s [-p port] [-d device] [-s spooldir] [-n name] [-u uuid] [-l addr] [-R recover-cmd]\n"
+              "       [-U user] [-m max-document-MB] [-v]\n", argv[0]);
       return 1;
     }
   }
@@ -1562,7 +1700,15 @@ int main(int argc, char *argv[]) {
   setvbuf(stderr, NULL, _IOLBF, 0);
   start_time = time(NULL);
   make_uuid();
-  mkdir(cfg_spool, 0700);
+  if (mkdir(cfg_spool, 0700) && errno != EEXIST) {
+    logmsg("cannot create spool directory %s: %s", cfg_spool, strerror(errno));
+    return 1;
+  }
+  struct stat sst;
+  if (lstat(cfg_spool, &sst) || !S_ISDIR(sst.st_mode)) {
+    logmsg("spool %s is not a directory (symlink?), refusing to start", cfg_spool);
+    return 1;
+  }
 
   int ls = socket(AF_INET6, SOCK_STREAM, 0);
   int on = 1, off = 0;
@@ -1598,6 +1744,56 @@ int main(int argc, char *argv[]) {
   }
   logmsg("%s listening on port %d, device %s, uuid %s", cfg_name, cfg_port, cfg_device, cfg_uuid);
 
+  if (geteuid() == 0 && cfg_user) {
+    struct passwd *pw = getpwnam(cfg_user);
+    if (!pw) { logmsg("unknown user %s, refusing to run as root", cfg_user); return 1; }
+    uid_t uid = pw->pw_uid;
+    gid_t gid = pw->pw_gid;
+    if (chown(cfg_spool, uid, gid) || chmod(cfg_spool, 0700)) {
+      logmsg("cannot prepare spool directory: %s", strerror(errno));
+      return 1;
+    }
+    if (cfg_recover && cfg_recover[0]) {
+      /* privilege separation: a root helper without network access runs the
+       * fixed recovery command on request; everything else runs unprivileged */
+      int fds[2];
+      if (pipe(fds)) { logmsg("pipe: %s", strerror(errno)); return 1; }
+      pid_t child = fork();
+      if (child < 0) { logmsg("fork: %s", strerror(errno)); return 1; }
+      if (child > 0) {
+        close(fds[1]);
+        close(ls);
+        helper_child = child;
+        signal(SIGTERM, helper_term);
+        signal(SIGINT, helper_term);
+        char b;
+        for (;;) {
+          ssize_t r = read(fds[0], &b, 1);
+          if (r == 1) { run_recover(); continue; }
+          if (r < 0 && errno == EINTR) continue;
+          break; /* server process exited */
+        }
+        int status = 0;
+        waitpid(child, &status, 0);
+        logmsg("server process exited, stopping");
+        return 1;
+      }
+      close(fds[0]);
+      recover_fd = fds[1];
+#ifdef __linux__
+      prctl(PR_SET_PDEATHSIG, SIGTERM);
+#endif
+    }
+    if (setgroups(1, &gid) || setgid(gid) || setuid(uid)) {
+      logmsg("cannot drop privileges: %s", strerror(errno));
+      return 1;
+    }
+    if (setuid(0) == 0) { logmsg("privileges were not dropped, refusing to run"); return 1; }
+    logmsg("running as user %s (uid %d, gid %d)", cfg_user, (int)uid, (int)gid);
+  } else if (geteuid() == 0) {
+    logmsg("warning: running as root (use -U to drop privileges)");
+  }
+
   pthread_t wt;
   pthread_create(&wt, NULL, worker, NULL);
   if (cfg_recover && cfg_recover[0]) {
@@ -1609,15 +1805,24 @@ int main(int argc, char *argv[]) {
   for (;;) {
     int fd = accept(ls, NULL, NULL);
     if (fd < 0) { if (errno == EINTR) continue; sleep(1); continue; }
+    pthread_mutex_lock(&jobs_lock);
+    int full = n_connections >= MAX_CONNECTIONS;
+    if (!full) n_connections++;
+    pthread_mutex_unlock(&jobs_lock);
+    if (full) { close(fd); continue; }
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &on, sizeof on);
     conn_t *c = calloc(1, sizeof *c);
+    if (!c) { close(fd); pthread_mutex_lock(&jobs_lock); n_connections--; pthread_mutex_unlock(&jobs_lock); continue; }
     c->fd = fd;
     pthread_t t;
     pthread_attr_t at;
     pthread_attr_init(&at);
     pthread_attr_setdetachstate(&at, PTHREAD_CREATE_DETACHED);
     pthread_attr_setstacksize(&at, 256 * 1024);
-    if (pthread_create(&t, &at, conn_thread, c)) { close(fd); free(c); }
+    if (pthread_create(&t, &at, conn_thread, c)) {
+      close(fd); free(c);
+      pthread_mutex_lock(&jobs_lock); n_connections--; pthread_mutex_unlock(&jobs_lock);
+    }
     pthread_attr_destroy(&at);
   }
 }

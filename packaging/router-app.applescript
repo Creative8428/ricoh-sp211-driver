@@ -28,6 +28,7 @@ on run
 		set msgInstalled to "Gata! Serverul AirPrint rulează pe router." & return & return & ¬
 			"Conectează imprimanta la portul USB al routerului. Pe Mac: Configurări sistem → Imprimante și scanere → Adaugă imprimantă → „RICOH SP 211” (AirPrint). Pe iPhone/iPad apare direct în meniul Tipărire."
 		set msgRemoved to "Serverul AirPrint a fost eliminat de pe router."
+		set msgTampered to "Aplicația a fost modificată după ce a fost creată și nu va fi rulată. Descarcă din nou imaginea DMG."
 	else
 		set lang to "en"
 		set theTitle to "AirPrint on Router – Ricoh SP 211"
@@ -43,7 +44,16 @@ on run
 		set msgInstalled to "Done! The AirPrint server is running on the router." & return & return & ¬
 			"Connect the printer to the router's USB port. On a Mac: System Settings → Printers & Scanners → Add Printer → “RICOH SP 211” (AirPrint). On iPhone/iPad it shows up directly in the Print menu."
 		set msgRemoved to "The AirPrint server has been removed from the router."
+		set msgTampered to "This app was modified after it was built and will not be run. Download the disk image again."
 	end if
+
+	-- refuse to run if the bundle (including its scripts) was modified
+	try
+		do shell script "/usr/bin/codesign --verify --deep --strict " & quoted form of POSIX path of (path to me)
+	on error
+		display dialog msgTampered buttons {"OK"} default button "OK" with title theTitle with icon stop
+		return
+	end try
 
 	try
 		set r to display dialog msgIntro buttons {btnCancel, btnRemove, btnInstall} default button btnInstall ¬

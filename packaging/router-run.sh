@@ -5,7 +5,8 @@ set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
 ACTION=$1; HOST=$2; PORT=${3:-}; USER_=${4:-root}
 export SSH_ASKPASS="$HERE/router-askpass.sh" SSH_ASKPASS_REQUIRE=force DISPLAY=${DISPLAY:-:0}
-args=(-o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -o NumberOfPasswordPrompts=2)
+# StrictHostKeyChecking=ask: an unknown router key is shown for confirmation (askpass)
+args=(-o ConnectTimeout=10 -o StrictHostKeyChecking=ask -o NumberOfPasswordPrompts=2)
 [ -n "$PORT" ] && args+=(-p "$PORT")
 # a host alias from ~/.ssh/config keeps its own user
 [[ "$HOST" == *.* || "$HOST" == *:* ]] && HOST="$USER_@$HOST"

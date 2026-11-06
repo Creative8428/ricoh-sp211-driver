@@ -1,0 +1,8 @@
+#!/bin/sh
+# Gives the "lp" group (the unprivileged sp211 user) access to USB printers,
+# so sp211-airprintd does not need root to write to /dev/usb/lp0.
+[ "$ACTION" = "add" ] || exit 0
+case "$DEVNAME" in
+	usb/lp*) chgrp lp "/dev/$DEVNAME" 2>/dev/null && chmod 660 "/dev/$DEVNAME" ;;
+esac
+exit 0

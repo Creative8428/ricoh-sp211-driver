@@ -24,9 +24,9 @@ build/router/sp211-airprintd: src/airprintd.c src/icon_png.h src/lilo2.h $(CORE)
 	mkdir -p build/router
 	zig cc -target $(ROUTER_TARGET) -O2 -static -s -Isrc -I$(JBIG) -o $@ src/airprintd.c $(CORE) -lpthread 2>&1 | grep -v NDEBUG | grep -v "define NDEBUG" | grep -v "previous definition" | grep -v "^ *|" | grep -v "^ *^" | grep -v "warning generated" | grep -v "command line" || true
 
-build/router/sp211-airprint-router.tar.gz: build/router/sp211-airprintd packaging/router/setup.sh packaging/router/sp211-airprint.init packaging/router/sp211-usb-recover
+build/router/sp211-airprint-router.tar.gz: build/router/sp211-airprintd packaging/router/setup.sh packaging/router/sp211-airprint.init packaging/router/sp211-usb-recover packaging/router/sp211-airprint.hotplug
 	rm -rf build/router/bundle && mkdir -p build/router/bundle
-	cp build/router/sp211-airprintd packaging/router/setup.sh packaging/router/sp211-airprint.init packaging/router/sp211-usb-recover build/router/bundle/
+	cp build/router/sp211-airprintd packaging/router/setup.sh packaging/router/sp211-airprint.init packaging/router/sp211-usb-recover packaging/router/sp211-airprint.hotplug build/router/bundle/
 	tar -C build/router/bundle -czf $@ .
 
 router: build/router/sp211-airprint-router.tar.gz

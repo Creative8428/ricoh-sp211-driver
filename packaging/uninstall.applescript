@@ -23,6 +23,7 @@ on run
 		set msgPrompt to "Introdu parola pentru a dezinstala driverul Ricoh SP 211."
 		set msgFail to "Dezinstalarea nu a reușit:"
 		set msgDone to "Driverul a fost dezinstalat."
+		set msgTampered to "Aplicația a fost modificată după ce a fost creată și nu va fi rulată. Descarcă din nou imaginea DMG."
 	else
 		set theTitle to "Uninstall Ricoh SP 211 Driver"
 		set msgIntro to "The native driver for the Ricoh SP 211 will be removed." & return & return & ¬
@@ -33,7 +34,16 @@ on run
 		set msgPrompt to "Enter your password to uninstall the Ricoh SP 211 driver."
 		set msgFail to "Uninstalling failed:"
 		set msgDone to "The driver has been uninstalled."
+		set msgTampered to "This app was modified after it was built and will not be run. Download the disk image again."
 	end if
+
+	-- refuse to run if the bundle (including its scripts) was modified
+	try
+		do shell script "/usr/bin/codesign --verify --deep --strict " & quoted form of POSIX path of (path to me)
+	on error
+		display dialog msgTampered buttons {"OK"} default button "OK" with title theTitle with icon stop
+		return
+	end try
 
 	try
 		display dialog msgIntro buttons {btnCancel, btnGo} default button btnGo cancel button btnCancel ¬

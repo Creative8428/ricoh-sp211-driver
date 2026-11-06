@@ -63,6 +63,14 @@ without a driver. Tested on a GL.iNet Flint 2 (MT6000) with OpenWrt 25.12.
   2 min, 10 min and every 30 min while it stays missing. USB controllers with other devices
   attached (storage, modems) are never touched. To turn it off:
   `touch /etc/sp211-airprint/no-auto-recover && /etc/init.d/sp211-airprint restart`.
+- **Security:** the server drops root after binding port 631 and runs as the unprivileged user
+  `sp211` (group `lp`, which gets access to `/dev/usb/lp0` through a hotplug rule); a separate root
+  helper without network access only runs the USB recovery. Requests are size- and depth-limited
+  (documents up to 100 MB, 32 connections, 50 active jobs), job names and owners are hidden from
+  other users and only the owner can cancel a job. The router's SSH host key is shown for
+  confirmation on the first connection, and the apps refuse to run if their bundle was modified.
+  Not covered: IPP is not encrypted (plain IPP on the LAN, as with most home printers) and the
+  package is not signed by Apple. Security tests: `./tests/airprint/attack.sh`.
 - **OpenWrt upgrades:** the setup survives `sysupgrade` and Attended Sysupgrade when *Keep
   settings* is on. The server, its configuration, the Avahi announcement, the firewall rule and
   the autostart links are listed in `/etc/sysupgrade.conf`, and `kmod-usb-printer` is in
@@ -170,6 +178,15 @@ fără driver. Testat pe GL.iNet Flint 2 (MT6000), OpenWrt 25.12.
   reîncearcă după 2 minute, 10 minute și la fiecare 30 de minute cât timp lipsește. Controlerele USB
   la care e conectat și altceva (stocare, modem) nu sunt atinse niciodată. Dezactivare:
   `touch /etc/sp211-airprint/no-auto-recover && /etc/init.d/sp211-airprint restart`.
+- **Securitate:** după ce deschide portul 631, serverul renunță la root și rulează ca utilizatorul
+  neprivilegiat `sp211` (grupul `lp`, care primește acces la `/dev/usb/lp0` printr-o regulă hotplug).
+  Un proces root separat, fără acces la rețea, rulează doar recuperarea USB. Cererile au limite de
+  mărime și de imbricare (documente de maximum 100 MB, 32 de conexiuni, 50 de joburi active), numele
+  joburilor și ale utilizatorilor sunt ascunse față de ceilalți, iar un job poate fi anulat doar de cel
+  care l-a trimis. La prima conexiune SSH, amprenta cheii routerului e afișată pentru confirmare, iar
+  aplicațiile refuză să ruleze dacă au fost modificate. Neacoperit: IPP nu e criptat (IPP simplu în LAN,
+  ca la majoritatea imprimantelor de casă) și pachetul nu e semnat de Apple.
+  Teste de securitate: `./tests/airprint/attack.sh`.
 - **Upgrade OpenWrt:** configurarea rămâne după `sysupgrade` și după Attended Sysupgrade, dacă
   opțiunea *Keep settings* e bifată. Serverul, configurația lui, anunțul Avahi, regula de firewall
   și legăturile de pornire automată sunt trecute în `/etc/sysupgrade.conf`, iar `kmod-usb-printer`

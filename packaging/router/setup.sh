@@ -8,6 +8,8 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 CONF=/etc/sp211-airprint
 SVC=/etc/avahi/services/sp211-airprint.service
 RULE=sp211_airprint_ipp
+SVCUSER=sp211
+HOTPLUG=/etc/hotplug.d/usbmisc/20-sp211-airprint
 
 say() { echo "SP211: $*"; }
 
@@ -56,7 +58,7 @@ XML
 }
 
 do_install() {
-	[ -f "$HERE/sp211-airprintd" ] && [ -f "$HERE/sp211-usb-recover" ] || { say "incomplete bundle"; exit 1; }
+	[ -f "$HERE/sp211-airprintd" ] && [ -f "$HERE/sp211-usb-recover" ] && [ -f "$HERE/sp211-airprint.hotplug" ] || { say "incomplete bundle"; exit 1; }
 	# USB printer class driver (/dev/usb/lp0)
 	if [ ! -e /lib/modules/$(uname -r)/usblp.ko ]; then
 		say "installing kmod-usb-printer"
@@ -65,6 +67,19 @@ do_install() {
 		mkdir -p $CONF && touch $CONF/installed-kmod
 	fi
 	modprobe usblp 2>/dev/null || insmod usblp 2>/dev/null || true
+
+	# unprivileged service user in the "lp" group
+	. /lib/functions.sh
+	group_exists lp || group_add lp 7
+	lpgid=$(awk -F: '$1=="lp"{print $3}' /etc/group)
+	if ! user_exists $SVCUSER; then
+		uid=230; while grep -q "^[^:]*:[^:]*:$uid:" /etc/passwd; do uid=$((uid + 1)); done
+		user_add $SVCUSER $uid $lpgid "sp211 AirPrint server" /var /bin/false
+	fi
+	mkdir -p /etc/hotplug.d/usbmisc
+	cp "$HERE/sp211-airprint.hotplug" $HOTPLUG
+	chmod 644 $HOTPLUG
+	for d in /dev/usb/lp*; do [ -e "$d" ] && chgrp lp "$d" && chmod 660 "$d"; done
 
 	mkdir -p $CONF
 	[ -s $CONF/uuid ] || cat /proc/sys/kernel/random/uuid > $CONF/uuid
@@ -96,7 +111,7 @@ do_install() {
 
 	# keep across sysupgrade (including the autostart links in /etc/rc.d,
 	# which are not part of the default backup)
-	for f in /usr/sbin/sp211-airprintd /usr/libexec/sp211-usb-recover /etc/init.d/sp211-airprint $CONF/ $SVC \
+	for f in /usr/sbin/sp211-airprintd /usr/libexec/sp211-usb-recover /etc/init.d/sp211-airprint $CONF/ $SVC $HOTPLUG \
 	         /etc/rc.d/S95sp211-airprint /etc/rc.d/K10sp211-airprint; do
 		grep -qxF "$f" /etc/sysupgrade.conf 2>/dev/null || echo "$f" >> /etc/sysupgrade.conf
 	done
@@ -109,7 +124,10 @@ do_install() {
 do_remove() {
 	/etc/init.d/sp211-airprint stop >/dev/null 2>&1 || true
 	/etc/init.d/sp211-airprint disable >/dev/null 2>&1 || true
-	rm -f /etc/init.d/sp211-airprint /usr/sbin/sp211-airprintd /usr/libexec/sp211-usb-recover $SVC
+	rm -f /etc/init.d/sp211-airprint /usr/sbin/sp211-airprintd /usr/libexec/sp211-usb-recover $SVC $HOTPLUG
+	if grep -q "^$SVCUSER:" /etc/passwd; then
+		sed -i "/^$SVCUSER:/d" /etc/passwd /etc/shadow 2>/dev/null
+	fi
 	rm -rf /tmp/sp211-spool
 	avahi_reload
 	if uci -q get firewall.$RULE >/dev/null; then
