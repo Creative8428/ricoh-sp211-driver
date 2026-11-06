@@ -23,21 +23,21 @@ pkgbuild --quiet --root "$R" --install-location / --ownership recommended \
 sed "s/__VERSION__/$VERSION/" packaging/distribution-install.xml > "$WORK/dist-i.xml"
 S=$WORK/dmg; mkdir -p "$S"
 productbuild --quiet --distribution "$WORK/dist-i.xml" --resources packaging/resources \
-  --package-path "$WORK" "$S/Instalează driverul.pkg"
+  --package-path "$WORK" "$S/Install Driver.pkg"
 # uninstaller: small AppleScript app that runs uninstall.sh as administrator
-U="$S/Dezinstalează driverul.app"
+U="$S/Uninstall Driver.app"
 osacompile -o "$U" packaging/uninstall.applescript
 install -m 755 packaging/uninstall.sh "$U/Contents/Resources/uninstall.sh"
 codesign --force --deep --sign - "$U" 2>/dev/null
 # router setup app: installs/removes the AirPrint server on an OpenWrt router over SSH
-A="$S/AirPrint pe router.app"
+A="$S/AirPrint on Router.app"
 osacompile -o "$A" packaging/router-app.applescript
 install -m 755 packaging/router-run.sh packaging/router-askpass.sh "$A/Contents/Resources/"
 install -m 644 build/router/sp211-airprint-router.tar.gz "$A/Contents/Resources/"
 codesign --force --deep --sign - "$A" 2>/dev/null
 
-cp packaging/Citeste-ma.txt "$S/Citește-mă.txt"
+cp packaging/ReadMe.txt "$S/Read Me.txt"
 
 mkdir -p "$OUT"; DMG="$OUT/RICOH-SP211-Native-$VERSION.dmg"; rm -f "$DMG"
-hdiutil create -quiet -volname "Driver Ricoh SP 211" -srcfolder "$S" -fs HFS+ -format UDZO "$DMG"
+hdiutil create -quiet -volname "Ricoh SP 211 Driver" -srcfolder "$S" -fs HFS+ -format UDZO "$DMG"
 echo "Built $DMG"
