@@ -732,7 +732,18 @@ static void process_job(job_t *j) {
   lilo2_buf *dpages = NULL; /* manual duplex */
   int dev = -1;
 
-  if (!f || rast_open(&r, f)) { logmsg("job %d: unsupported or empty document", j->id); goto done; }
+  if (!f) { logmsg("job %d: spool file missing", j->id); goto done; }
+  {
+    unsigned char magic[8] = {0};
+    size_t mn = fread(magic, 1, sizeof magic, f);
+    rewind(f);
+    if (mn == 0) { logmsg("job %d: empty document, nothing to print", j->id); ok = 1; goto done; }
+    if (rast_open(&r, f)) {
+      logmsg("job %d: unsupported document (%s), starts with %02x %02x %02x %02x %02x %02x %02x %02x",
+             j->id, j->format, magic[0], magic[1], magic[2], magic[3], magic[4], magic[5], magic[6], magic[7]);
+      goto done;
+    }
+  }
 
   lilo2_job hdr = {0};
   hdr.copies = j->copies;
@@ -762,7 +773,7 @@ static void process_job(job_t *j) {
       if (r.num_copies > 1 && j->copies <= 1) hdr.copies = (int)r.num_copies;
       lilo2_job_header(&out, &hdr);
       if ((dev = open_device(j)) < 0) goto done;
-      if (write_all(dev, out.d, out.len)) { logmsg("job %d: write error", j->id); goto done; }
+      if (write_all(dev, out.d, out.len)) { logmsg("job %d: write to printer failed: %s", j->id, strerror(errno)); goto done; }
       out.len = 0;
       first = 0;
     }
@@ -771,7 +782,7 @@ static void process_job(job_t *j) {
       if (render_page(&r, j, &out, LILO2_PAGE_NORMAL, pages, j->tray_code, 0, NULL)) {
         logmsg("job %d: bad raster data on page %d", j->id, pages); goto done;
       }
-      if (write_all(dev, out.d, out.len)) { logmsg("job %d: write error", j->id); goto done; }
+      if (write_all(dev, out.d, out.len)) { logmsg("job %d: write to printer failed: %s", j->id, strerror(errno)); goto done; }
     } else {
       dpages = realloc(dpages, sizeof(lilo2_buf) * pages);
       lilo2_buf *pb = &dpages[pages - 1];
@@ -813,8 +824,11 @@ done:
   j->state = j->cancel ? JS_CANCELED : ok ? JS_COMPLETED : JS_ABORTED;
   strcpy(j->reason, j->cancel ? "job-canceled-by-user" : ok ? "job-completed-successfully"
                                                            : "aborted-by-system");
+  int final = j->state;
   prune_jobs();
   pthread_mutex_unlock(&jobs_lock);
+  if (final == JS_CANCELED) logmsg("job %d: canceled by the client", j->id);
+  else if (final == JS_ABORTED) logmsg("job %d: aborted (see messages above)", j->id);
 }
 
 static void *worker(void *arg) {
@@ -1150,7 +1164,7 @@ static int spool_document(req_t *q, job_t *j) {
   }
   close(fd);
   if (r < 0) return -1;
-  DBG("job %d: received %lld bytes (%s)", j->id, total, j->format);
+  logmsg("job %d: received %lld bytes (%s)", j->id, total, j->format);
   return 0;
 }
 
@@ -1272,6 +1286,7 @@ static void handle_ipp(req_t *q) {
     else if (j->state >= JS_CANCELED) st = ST_NOT_POSSIBLE;
     else {
       j->cancel = 1;
+      logmsg("job %d: cancel requested by %s", j->id, attr_str(&q->attrs, "requesting-user-name") ?: "client");
       if (j->state == JS_PENDING) {
         j->state = JS_CANCELED; strcpy(j->reason, "job-canceled-by-user"); j->completed = time(NULL);
         unlink(j->spool);
