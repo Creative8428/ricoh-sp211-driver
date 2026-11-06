@@ -1,0 +1,231 @@
+PBMTOJBG(1)                 General Commands Manual                PBMTOJBG(1)
+
+NAME
+       pbmtojbg - portable bitmap to JBIG1 file converter
+
+SYNOPSIS
+       pbmtojbg [ options ] [ input-file | -  [ output-file ]]
+
+DESCRIPTION
+       Reads  a  file in portable bitmap (PBM) format, compresses it, and out-
+       puts the image as a JBIG1 bi-level image entity (BIE).
+
+       JBIG1 is a highly effective, lossless  compression  algorithm  for  bi-
+       level  images  (one  bit per pixel), which is particularly suitable for
+       scanned document pages.
+
+       A JBIG1 encoded image can be stored in several resolution layers  (pro-
+       gressive  mode).  This allows the decoder to recover a lower-resolution
+       version of the encoded image without having to read the complete  file.
+       These resolution layers can be stored all in one single BIE or they can
+       be stored in several separate BIE files.  All resolution layers, except
+       the lowest one, are stored merely as differences to the next lower res-
+       olution  layer.  This  requires less space than encoding the full image
+       completely every time. Each resolution layer has twice as many horizon-
+       tal and vertical pixels as the next lower layer.
+
+       For best speed and compression, if you  are  not  interested  in  effi-
+       ciently  extracting lower-resolution versions from the compressed file,
+       use sequential mode (single resolution layer, option -q).
+
+       JBIG1 files can also store several bits  per  pixel,  as  separate  bit
+       planes,  and pbmtojbg can read a portable graymap (PGM) file and trans-
+       form it into a multi-plane BIE.
+
+
+OPTIONS
+       -           A single hyphen instead of an input file name causes pbmto-
+                   jbg to read the data from standard input instead of from  a
+                   file.
+
+       -v          List technical details of the created file (verbose mode).
+
+       -f          This  option makes the output file comply with the "facsim-
+                   ile application profile" defined  in  ITU-T  Recommendation
+                   T.85. It is a shortcut for -q -o 0 -p 8 -s 128 -t 1 -m 127.
+
+       -C string   Add  the string in a comment marker segment to the produced
+                   data stream.
+                   (There is no support at present for  adding  comments  that
+                   contain a zero byte.)
+
+       Options affecting the number of resolution layers produced:
+
+       -q          Encode the image in one single resolution layer (sequential
+                   mode),  which  is  usually  the  most efficient compression
+                   method. By default, the number of resolution layers is  in-
+                   stead chosen automatically such that the lowest layer image
+                   is not larger than 640 x 480 pixels.  This option is just a
+                   shortcut for -d 0.
+
+       -x number   Specify  the  maximal horizontal size of the lowest resolu-
+                   tion layer.  Default: 640 pixels
+
+       -y number   Specify the maximal vertical size of the lowest  resolution
+                   layer.  Default: 480 pixels
+
+       -d number   Specify  the total number of differential resolution layers
+                   into which to split the input image  (in  addition  to  the
+                   lowest layer). Each additional layer reduces both the width
+                   and  height  of  layer 0 by 50%.  This option overrides op-
+                   tions -x and -y, which are usually a more convenient way of
+                   selecting the number of resolution layers.
+
+       -l number   Select the lowest resolution layer DL that will  appear  in
+                   the  generated BIE.  JBIG1 can store the various resolution
+                   layers of an image in progressive mode split across several
+                   BIEs. Options -l and -h allow you to select the resolution-
+                   layer interval that will appear in  the  created  BIE.  The
+                   lowest  resolution  layer has number 0 and this is also the
+                   default value. The default is to write all layers.
+
+       -h number   Select the highest resolution layer D that will  appear  in
+                   the generated BIE. The default is to write all layers.  See
+                   also option -l.
+
+       Options for changing other parameters indicated in the BIE header:
+
+       -s number   The  JBIG1  algorithm  splits  each  image  into horizontal
+                   stripes. This option specifies L0, the  layer-0  height  of
+                   each  such  stripe  (except  for the last one, which can be
+                   shorter).  The default is to split the whole image into ap-
+                   proximately 35 stripes.
+
+       -m number   Select the maximal horizontal offset  MX  of  the  adaptive
+                   template  pixel.  The JBIG1 encoder uses ten neighbour pix-
+                   els to estimate the probability of  the  next  pixel  being
+                   black  or white. It can adjust the location of one of these
+                   ten context pixels.  This is especially useful for dithered
+                   images, as long as the distance of this adaptive pixel  can
+                   be  adjusted  to  the  period of the dither pattern. By de-
+                   fault, the adaptive template pixel is allowed to move up to
+                   8 pixels away horizontally. This encoder supports distances
+                   up to 127 pixels.
+                   Annex A of the standard suggests that decoders should  sup-
+                   port  at least a horizontal distance of 16 pixels, so using
+                   values not higher than 16 for  number  might  increase  the
+                   chances  of  interoperability  with other JBIG1 implementa-
+                   tions. On the other hand, the T.85 fax application  profile
+                   requires  decoders  to support horizontal offsets up to 127
+                   pixels, which is the maximum value permitted by  the  stan-
+                   dard.  (The maximal vertical offset MY of the adaptive tem-
+                   plate pixel is always zero for this encoder.)
+
+       -o number   Specify the order in which image data appears in  the  out-
+                   put.   JBIG1  separates  an  image  into several horizontal
+                   stripes, resolution layers and  planes,  where  each  plane
+                   contains  one bit per pixel. One single stripe in one plane
+                   and layer is encoded as a data unit called stripe data  en-
+                   tity  (SDE) inside the BIE. There are 12 different possible
+                   orders in which the SDEs can be stored inside the  BIE  and
+                   number  selects  which one shall be used. For receiving ap-
+                   plications, the order of the SDEs mainly  matters  if  they
+                   want to start decoding an image before it has been received
+                   completely.   For  instance,  some  applications may prefer
+                   that the outermost of the  three  loops  (stripes,  layers,
+                   planes)  is  over all layers so that all data of the lowest
+                   resolution layer is transmitted first.
+                   The following values for number select these loop  arrange-
+                   ments for writing the SDEs (outermost loop first):
+
+                      0    planes, layers, stripes
+                      2    layers, planes, stripes
+                      3    layers, stripes, planes
+                      4    stripes, planes, layers
+                      5    planes, stripes, layers
+                      6    stripes, layers, planes
+
+                   All loops count starting with zero. However, by adding 8 to
+                   the  above  order  code,  the layer loop can be reversed so
+                   that it counts down to zero and then higher resolution lay-
+                   ers will be stored before lower layers.  The default  order
+                   is 3, which first writes all planes of the first stripe and
+                   then  completes  layer  0  before  continuing with the next
+                   layer, and so on.
+
+       -p number   This option activates or deactivates various optional algo-
+                   rithms defined in the JBIG1 standard. Just add the  numbers
+                   of the following options that you want to activate in order
+                   to get the number value:
+
+                      4    deterministic prediction (DPON)
+                      8    layer 0 typical prediction (TPBON)
+                     16   diff. layer typ. pred. (TPDON)
+                     64   layer 0 two-line template (LRLTWO)
+
+                   This option is only for specialist applications (e.g., com-
+                   munication  with  JBIG1 subset implementations, debugging).
+                   The default is 28, which usually provides the best compres-
+                   sion result.
+
+       Options affecting the processing of PGM files:
+
+       -b          Use binary values instead of Gray code words  in  order  to
+                   encode pixel values in multiple bit planes. This option has
+                   only  an effect if the input is a PGM file and if more than
+                   one plane is produced. Note that the decoder  has  to  make
+                   the same choice, but the BIE does not indicate whether Gray
+                   or binary code words were used by the encoder.
+
+       -t number   Encode  only  the  specified number of most significant bit
+                   planes. This option reduces the depth of an input PGM  file
+                   if not all bits per pixel are needed in the output.
+
+       Options for generating test files:
+
+       -r          Use  the  SDRST marker instead of the normal SDNORM marker.
+                   Probably the only useful application for this option is  to
+                   generate test data for checking whether a JBIG1 decoder has
+                   implemented SDRST correctly. In a normal JBIG1 data stream,
+                   each  stripe  data  entity (SDE) is terminated by an SDNORM
+                   marker, which preserves the state of the arithmetic encoder
+                   (and more) for the next stripe in the same layer.  The  al-
+                   ternative  SDRST marker resets this state at the end of the
+                   stripe.
+
+       -Y number   Specify a preliminary image height YD.  A  long  time  ago,
+                   there  were  fax  machines that couldn't even hold a single
+                   page in memory. They had to start transmitting data  before
+                   the  page  was  scanned  in  completely and before even the
+                   height of the resulting image was known.   The  authors  of
+                   the  standard  added a rather ugly hack to JBIG1 to support
+                   this use case. The NEWLEN marker segment can  override  the
+                   image height stated in the BIE header anywhere later in the
+                   data  stream.  Normally  pbmtojbg  never  generates  NEWLEN
+                   marker segments, as it knows the correct image height  when
+                   it  outputs  the header. This option is intended solely for
+                   generating test files with NEWLEN marker segments.  It  can
+                   be used to specify a higher initial image height for use in
+                   the  BIE header, and pbmtojbg will then add a NEWLEN marker
+                   segment at the latest  possible  opportunity  to  the  data
+                   stream  to  signal  the correct final height.  It will also
+                   set the VLENGTH flag in the BIE header.
+
+       -c          Determine the adaptive template pixel movement as suggested
+                   in Annex C of the standard. By default the template  change
+                   takes place directly in the next line, which is most effec-
+                   tive. However, a few conformance test examples in the stan-
+                   dard require the adaptive template change to be delayed un-
+                   til  the first line of the next stripe. This option selects
+                   this special behaviour, which is normally not useful  other
+                   than for conformance testing.
+
+BUGS
+       Using  standard input and standard output for binary data works only on
+       systems where there is no difference between binary  and  text  streams
+       (e.g., Unix). On other systems (e.g., Windows), using standard input or
+       standard  output  may  cause control characters like CR or LF to be in-
+       serted or deleted, which will damage the binary data.
+
+STANDARDS
+       This program implements the JBIG1 image coding algorithm  as  specified
+       in  international  standard ISO/IEC 11544:1993 and ITU-T Recommendation
+       T.82(1993).
+
+AUTHOR
+       Markus Kuhn wrote JBIG-KIT, which includes pbmtojbg.
+
+SEE ALSO
+       pbm(5), pgm(5), jbgtopbm(1)
+
+                                  2026-10-09                       PBMTOJBG(1)

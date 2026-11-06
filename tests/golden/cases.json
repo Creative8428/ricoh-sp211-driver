@@ -1,0 +1,58 @@
+[
+ {
+  "name": "text",
+  "raster": "text.ras.gz",
+  "options": "",
+  "title": "golden",
+  "user": "tester"
+ },
+ {
+  "name": "gray_noise",
+  "raster": "gray.ras.gz",
+  "options": "",
+  "title": "golden",
+  "user": "tester"
+ },
+ {
+  "name": "levels1200",
+  "raster": "levels1200.ras.gz",
+  "options": "",
+  "title": "golden",
+  "user": "tester"
+ },
+ {
+  "name": "multi5",
+  "raster": "m5.ras.gz",
+  "options": "",
+  "title": "golden",
+  "user": "tester"
+ },
+ {
+  "name": "multi5_toner",
+  "raster": "m5.ras.gz",
+  "options": "TonerSave=True",
+  "title": "golden",
+  "user": "tester"
+ },
+ {
+  "name": "multi5_duplex",
+  "raster": "m5.ras.gz",
+  "options": "Duplex=DuplexNoTumble PageSize=A4 InputSlot=Manual time-at-creation=1762456789",
+  "title": "golden",
+  "user": "tester"
+ },
+ {
+  "name": "multi4_tumble",
+  "raster": "m4.ras.gz",
+  "options": "Duplex=DuplexTumble MediaType=Thick",
+  "title": "golden",
+  "user": "tester"
+ },
+ {
+  "name": "letter",
+  "raster": "letter.ras.gz",
+  "options": "PageSize=Letter",
+  "title": "golden",
+  "user": "tester"
+ }
+]
