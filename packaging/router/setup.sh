@@ -82,7 +82,17 @@ do_install() {
 	for d in /dev/usb/lp*; do [ -e "$d" ] && chgrp lp "$d" && chmod 660 "$d"; done
 
 	mkdir -p $CONF
-	[ -s $CONF/uuid ] || cat /proc/sys/kernel/random/uuid > $CONF/uuid
+	# stable UUID derived from the router's MAC address: clients (macOS keeps
+	# it in the printer URI) still find the printer after a reinstall
+	if [ ! -s $CONF/uuid ] || [ "$UUID_RESET" = 1 ]; then
+		mac=$(cat /sys/class/net/eth0/address 2>/dev/null || cat /sys/class/net/br-lan/address 2>/dev/null)
+		if [ -n "$mac" ]; then
+			h=$(echo "sp211-airprint-$mac" | md5sum | cut -c1-32)
+			echo "$(echo $h | cut -c1-8)-$(echo $h | cut -c9-12)-3$(echo $h | cut -c14-16)-a$(echo $h | cut -c18-20)-$(echo $h | cut -c21-32)" > $CONF/uuid
+		else
+			cat /proc/sys/kernel/random/uuid > $CONF/uuid
+		fi
+	fi
 	[ -s $CONF/name ] || echo "RICOH SP 211" > $CONF/name
 	/etc/init.d/sp211-airprint stop >/dev/null 2>&1 || true
 	cp "$HERE/sp211-airprintd" /usr/sbin/sp211-airprintd
