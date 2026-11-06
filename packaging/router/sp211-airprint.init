@@ -9,9 +9,13 @@ start_service() {
 	uuid=$(cat /etc/sp211-airprint/uuid 2>/dev/null)
 	name=$(cat /etc/sp211-airprint/name 2>/dev/null)
 	[ -n "$name" ] || name="RICOH SP 211"
+	# automatic USB recovery, unless /etc/sp211-airprint/no-auto-recover exists
+	local recover=""
+	[ -f /etc/sp211-airprint/no-auto-recover ] || [ ! -x /usr/libexec/sp211-usb-recover ] || \
+		recover=/usr/libexec/sp211-usb-recover
 	procd_open_instance
 	procd_set_param command /usr/sbin/sp211-airprintd -p 631 -d /dev/usb/lp0 \
-		-s /tmp/sp211-spool -n "$name" ${uuid:+-u "$uuid"}
+		-s /tmp/sp211-spool -n "$name" ${uuid:+-u "$uuid"} ${recover:+-R "$recover"}
 	procd_set_param env TZ="$(cat /etc/TZ 2>/dev/null || uci -q get system.@system[0].timezone)"
 	procd_set_param respawn 3600 5 0
 	procd_set_param stdout 1

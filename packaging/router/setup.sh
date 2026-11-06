@@ -56,7 +56,7 @@ XML
 }
 
 do_install() {
-	[ -f "$HERE/sp211-airprintd" ] || { say "missing sp211-airprintd"; exit 1; }
+	[ -f "$HERE/sp211-airprintd" ] && [ -f "$HERE/sp211-usb-recover" ] || { say "incomplete bundle"; exit 1; }
 	# USB printer class driver (/dev/usb/lp0)
 	if [ ! -e /lib/modules/$(uname -r)/usblp.ko ]; then
 		say "installing kmod-usb-printer"
@@ -72,6 +72,9 @@ do_install() {
 	/etc/init.d/sp211-airprint stop >/dev/null 2>&1 || true
 	cp "$HERE/sp211-airprintd" /usr/sbin/sp211-airprintd
 	chmod 755 /usr/sbin/sp211-airprintd
+	mkdir -p /usr/libexec
+	cp "$HERE/sp211-usb-recover" /usr/libexec/sp211-usb-recover
+	chmod 755 /usr/libexec/sp211-usb-recover
 	cp "$HERE/sp211-airprint.init" /etc/init.d/sp211-airprint
 	chmod 755 /etc/init.d/sp211-airprint
 
@@ -93,7 +96,7 @@ do_install() {
 
 	# keep across sysupgrade (including the autostart links in /etc/rc.d,
 	# which are not part of the default backup)
-	for f in /usr/sbin/sp211-airprintd /etc/init.d/sp211-airprint $CONF/ $SVC \
+	for f in /usr/sbin/sp211-airprintd /usr/libexec/sp211-usb-recover /etc/init.d/sp211-airprint $CONF/ $SVC \
 	         /etc/rc.d/S95sp211-airprint /etc/rc.d/K10sp211-airprint; do
 		grep -qxF "$f" /etc/sysupgrade.conf 2>/dev/null || echo "$f" >> /etc/sysupgrade.conf
 	done
@@ -106,7 +109,7 @@ do_install() {
 do_remove() {
 	/etc/init.d/sp211-airprint stop >/dev/null 2>&1 || true
 	/etc/init.d/sp211-airprint disable >/dev/null 2>&1 || true
-	rm -f /etc/init.d/sp211-airprint /usr/sbin/sp211-airprintd $SVC
+	rm -f /etc/init.d/sp211-airprint /usr/sbin/sp211-airprintd /usr/libexec/sp211-usb-recover $SVC
 	rm -rf /tmp/sp211-spool
 	avahi_reload
 	if uci -q get firewall.$RULE >/dev/null; then
@@ -128,6 +131,7 @@ do_remove() {
 do_status() {
 	if pidof sp211-airprintd >/dev/null; then say "running"; else say "not running"; fi
 	[ -e /dev/usb/lp0 ] && say "printer connected (/dev/usb/lp0)" || say "printer not connected"
+	[ -f $CONF/no-auto-recover ] && say "automatic USB recovery: off" || say "automatic USB recovery: on"
 }
 
 case "$ACTION" in

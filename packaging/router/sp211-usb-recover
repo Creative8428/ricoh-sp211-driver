@@ -1,0 +1,42 @@
+#!/bin/sh
+# sp211-usb-recover: power-cycles the USB host controller(s) of an OpenWrt
+# router so that a USB printer that stopped responding (e.g. after entering
+# energy-saver mode) is detected again. Unbinding the controller driver also
+# switches off the port's 5 V supply, like unplugging the cable.
+#
+# Controllers with other USB devices attached (storage, modems, ...) are left
+# alone, so nothing else is ever disconnected. Called by sp211-airprintd.
+
+done_list=""
+cycled=0
+for hub in /sys/bus/usb/devices/usb*; do
+	[ -e "$hub" ] || continue
+	ctrl=$(readlink -f "$hub/..")
+	case " $done_list " in *" $ctrl "*) continue ;; esac
+	done_list="$done_list $ctrl"
+	[ -e "$ctrl/driver" ] || continue
+	drv=$(readlink -f "$ctrl/driver")
+	name=$(basename "$ctrl")
+
+	busy=""
+	for v in $(find "$ctrl" -name idVendor 2>/dev/null); do
+		d=$(dirname "$v")
+		[ "$(cat "$v")" = "1d6b" ] && continue          # root hub
+		printer=0
+		for c in "$d"/*:*/bInterfaceClass; do
+			[ "$(cat "$c" 2>/dev/null)" = "07" ] && printer=1
+		done
+		[ "$printer" = 1 ] || busy="$busy $(cat "$d/product" 2>/dev/null || basename "$d")"
+	done
+	if [ -n "$busy" ]; then
+		echo "skipping USB controller $name: other devices attached:$busy"
+		continue
+	fi
+
+	echo "power-cycling USB controller $name"
+	echo "$name" > "$drv/unbind" 2>/dev/null || { echo "unbind failed"; continue; }
+	sleep 3
+	echo "$name" > "$drv/bind" 2>/dev/null || echo "bind failed"
+	cycled=$((cycled + 1))
+done
+[ "$cycled" -gt 0 ]

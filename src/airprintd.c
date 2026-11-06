@@ -12,7 +12,10 @@
  * Identify-Printer.
  *
  * Usage: sp211-airprintd [-p port] [-d device] [-s spooldir] [-n name]
- *                        [-u uuid] [-l listen-addr] [-v]
+ *                        [-u uuid] [-l listen-addr] [-R recover-cmd] [-v]
+ *
+ * -R: command run when the printer disappears from USB and does not come back
+ *     (e.g. its USB port hangs in energy-saver mode); see sp211-usb-recover.
  */
 #define _GNU_SOURCE
 #include <arpa/inet.h>
@@ -47,6 +50,7 @@ static const char *cfg_name = "RICOH SP 211";
 static char cfg_uuid[64];
 static const char *cfg_listen = NULL;
 static int cfg_verbose = 0;
+static const char *cfg_recover = NULL; /* USB recovery command (-R) */
 static time_t start_time;
 
 static void logmsg(const char *fmt, ...) {
@@ -831,6 +835,50 @@ done:
   else if (final == JS_ABORTED) logmsg("job %d: aborted (see messages above)", j->id);
 }
 
+/* Watches the printer device. If it is missing for 20 s (it disappeared, or
+ * was never seen since start), runs the recovery command, then retries after
+ * 2 min, 10 min and every 30 min while it stays missing. A printer that is
+ * simply switched off only causes a harmless USB power cycle at those times. */
+static void *usb_monitor(void *arg) {
+  (void)arg;
+  int was_present = 0, attempt = 0;
+  time_t missing_since = 0, next_try = 0;
+  for (;;) {
+    sleep(5);
+    struct stat st;
+    int present = stat(cfg_device, &st) == 0;
+    time_t now = time(NULL);
+    if (present) {
+      if (missing_since) logmsg("printer is back on USB%s", attempt ? " after recovery" : "");
+      was_present = 1; missing_since = 0; attempt = 0;
+      continue;
+    }
+    (void)was_present; /* recover even if the printer was never seen since start
+                        * (e.g. it hung while the router was booting) */
+    if (!missing_since) {
+      missing_since = now;
+      next_try = now + 20;
+      logmsg("printer is not on USB (%s)", cfg_device);
+    }
+    if (now < next_try) continue;
+    attempt++;
+    logmsg("printer missing for %ld s, USB power-cycle attempt %d", (long)(now - missing_since), attempt);
+    char cmd[512];
+    snprintf(cmd, sizeof cmd, "%s 2>&1", cfg_recover);
+    FILE *p = popen(cmd, "r");
+    if (p) {
+      char line[256];
+      while (fgets(line, sizeof line, p)) {
+        line[strcspn(line, "\n")] = 0;
+        logmsg("recover: %s", line);
+      }
+      pclose(p);
+    }
+    next_try = now + (attempt == 1 ? 120 : attempt == 2 ? 600 : 1800);
+  }
+  return NULL;
+}
+
 static void *worker(void *arg) {
   (void)arg;
   for (;;) {
@@ -1495,7 +1543,7 @@ static void make_uuid(void) {
 
 int main(int argc, char *argv[]) {
   int opt;
-  while ((opt = getopt(argc, argv, "p:d:s:n:u:l:v")) != -1) {
+  while ((opt = getopt(argc, argv, "p:d:s:n:u:l:R:v")) != -1) {
     switch (opt) {
     case 'p': cfg_port = atoi(optarg); break;
     case 'd': cfg_device = optarg; break;
@@ -1503,9 +1551,10 @@ int main(int argc, char *argv[]) {
     case 'n': cfg_name = optarg; break;
     case 'u': snprintf(cfg_uuid, sizeof cfg_uuid, "%s", optarg); break;
     case 'l': cfg_listen = optarg; break;
+    case 'R': cfg_recover = optarg; break;
     case 'v': cfg_verbose = 1; break;
     default:
-      fprintf(stderr, "usage: %s [-p port] [-d device] [-s spooldir] [-n name] [-u uuid] [-l addr] [-v]\n", argv[0]);
+      fprintf(stderr, "usage: %s [-p port] [-d device] [-s spooldir] [-n name] [-u uuid] [-l addr] [-R recover-cmd] [-v]\n", argv[0]);
       return 1;
     }
   }
@@ -1551,6 +1600,11 @@ int main(int argc, char *argv[]) {
 
   pthread_t wt;
   pthread_create(&wt, NULL, worker, NULL);
+  if (cfg_recover && cfg_recover[0]) {
+    pthread_t mt;
+    pthread_create(&mt, NULL, usb_monitor, NULL);
+    logmsg("automatic USB recovery enabled (%s)", cfg_recover);
+  }
 
   for (;;) {
     int fd = accept(ls, NULL, NULL);
