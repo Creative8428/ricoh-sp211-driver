@@ -89,12 +89,15 @@ do_install() {
 	write_service
 	avahi_reload
 
-	# keep across sysupgrade
-	for f in /usr/sbin/sp211-airprintd /etc/init.d/sp211-airprint $CONF/ $SVC; do
+	/etc/init.d/sp211-airprint enable
+
+	# keep across sysupgrade (including the autostart links in /etc/rc.d,
+	# which are not part of the default backup)
+	for f in /usr/sbin/sp211-airprintd /etc/init.d/sp211-airprint $CONF/ $SVC \
+	         /etc/rc.d/S95sp211-airprint /etc/rc.d/K10sp211-airprint; do
 		grep -qxF "$f" /etc/sysupgrade.conf 2>/dev/null || echo "$f" >> /etc/sysupgrade.conf
 	done
 
-	/etc/init.d/sp211-airprint enable
 	/etc/init.d/sp211-airprint start
 	sleep 1
 	if pidof sp211-airprintd >/dev/null; then say "installed and running"; else say "installed but not running"; exit 1; fi

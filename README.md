@@ -57,6 +57,11 @@ without a driver. Tested on a GL.iNet Flint 2 (MT6000) with OpenWrt 25.12.
 - **Build:** `make router`, which needs `zig` for cross-compiling
   (`ROUTER_TARGET=aarch64-linux-musl` by default; for other routers e.g. `mipsel-linux-musl`).
   Log on the router: `logread | grep sp211`.
+- **OpenWrt upgrades:** the setup survives `sysupgrade` and Attended Sysupgrade when *Keep
+  settings* is on. The server, its configuration, the Avahi announcement, the firewall rule and
+  the autostart links are listed in `/etc/sysupgrade.conf`, and `kmod-usb-printer` is in
+  `/etc/apk/world`, so Attended Sysupgrade builds it into the new image.
+  Check with `sysupgrade -l | grep sp211`.
 
 ### Install from Terminal
 ```bash
@@ -153,6 +158,11 @@ fără driver. Testat pe GL.iNet Flint 2 (MT6000), OpenWrt 25.12.
 - **Build:** `make router`, care are nevoie de `zig` pentru compilarea încrucișată
   (`ROUTER_TARGET=aarch64-linux-musl` implicit; pentru alte routere, de ex. `mipsel-linux-musl`).
   Jurnal pe router: `logread | grep sp211`.
+- **Upgrade OpenWrt:** configurarea rămâne după `sysupgrade` și după Attended Sysupgrade, dacă
+  opțiunea *Keep settings* e bifată. Serverul, configurația lui, anunțul Avahi, regula de firewall
+  și legăturile de pornire automată sunt trecute în `/etc/sysupgrade.conf`, iar `kmod-usb-printer`
+  e în `/etc/apk/world`, așa că Attended Sysupgrade îl include în imaginea nouă.
+  Verificare: `sysupgrade -l | grep sp211`.
 
 ### Instalare din Terminal
 ```bash
