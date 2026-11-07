@@ -516,6 +516,7 @@ static pthread_cond_t jobs_cond = PTHREAD_COND_INITIALIZER;
 static job_t *jobs = NULL;
 static int next_job_id = 1;
 static char printer_reason[64] = "none";
+static unsigned job_waits = 0; /* incremented when a job starts waiting for the printer */
 
 static job_t *job_find(int id) {
   for (job_t *j = jobs; j; j = j->next)
@@ -761,7 +762,13 @@ static int open_device(job_t *j) {
       pthread_mutex_unlock(&jobs_lock);
       return fd;
     }
-    if (!warned) { logmsg("waiting for printer device %s: %s", cfg_device, strerror(errno)); warned = 1; }
+    if (!warned) {
+      logmsg("waiting for printer device %s: %s", cfg_device, strerror(errno));
+      warned = 1;
+      pthread_mutex_lock(&jobs_lock);
+      job_waits++;
+      pthread_mutex_unlock(&jobs_lock);
+    }
     pthread_mutex_lock(&jobs_lock);
     strcpy(printer_reason, "offline-report");
     int cancel = j->cancel;
@@ -900,41 +907,79 @@ static void run_recover(void) {
   pclose(p);
 }
 
-/* Watches the printer device. If it is missing for 20 s (it disappeared, or
- * was never seen since start), runs the recovery command, then retries after
- * 2 min, 10 min and every 30 min while it stays missing. A printer that is
- * simply switched off only causes a harmless USB power cycle at those times. */
+/* Watches the printer device. When it is missing (it disappeared, or was
+ * never seen since start, e.g. it hung while the router booted), the USB port
+ * is power-cycled at most RECOVER_MAX times (after 20 s, 2 min, 10 min and
+ * 30 min), so a printer that is simply switched off for the night is left
+ * alone. A job that starts waiting for the printer allows one more attempt
+ * (20 s later, at most every 10 min). The count resets when the printer is
+ * back. */
+#define RECOVER_MAX 4
+#ifndef RECOVER_DIV   /* tests build with -DRECOVER_DIV=20 to shorten all delays */
+#define RECOVER_DIV 1
+#endif
+static const int recover_delay[RECOVER_MAX] = {20 / RECOVER_DIV, 120 / RECOVER_DIV,
+                                               600 / RECOVER_DIV, 1800 / RECOVER_DIV};
+
+static void request_recover(void) {
+  if (recover_fd >= 0) {
+    /* unprivileged: ask the root helper (it only ever runs cfg_recover) */
+    if (write(recover_fd, "R", 1) != 1) logmsg("recover: helper not available");
+  } else {
+    run_recover();
+  }
+}
+
 static void *usb_monitor(void *arg) {
   (void)arg;
-  int was_present = 0, attempt = 0;
-  time_t missing_since = 0, next_try = 0;
+  int attempt = 0, gave_up = 0;
+  time_t missing_since = 0, next_try = 0, last_try = 0;
+  unsigned seen_waits;
+  pthread_mutex_lock(&jobs_lock);
+  seen_waits = job_waits;
+  pthread_mutex_unlock(&jobs_lock);
   for (;;) {
-    sleep(5);
+    sleep(RECOVER_DIV > 1 ? 1 : 5);
     struct stat st;
     int present = stat(cfg_device, &st) == 0;
     time_t now = mono_now();
+    pthread_mutex_lock(&jobs_lock);
+    unsigned waits = job_waits;
+    pthread_mutex_unlock(&jobs_lock);
+    int new_job = waits != seen_waits;
+    seen_waits = waits;
+
     if (present) {
       if (missing_since) logmsg("printer is back on USB%s", attempt ? " after recovery" : "");
-      was_present = 1; missing_since = 0; attempt = 0;
+      missing_since = 0; attempt = 0; gave_up = 0;
       continue;
     }
-    (void)was_present; /* recover even if the printer was never seen since start
-                        * (e.g. it hung while the router was booting) */
     if (!missing_since) {
       missing_since = now;
-      next_try = now + 20;
+      next_try = now + recover_delay[0];
       logmsg("printer is not on USB (%s)", cfg_device);
+    }
+    if (gave_up) {
+      /* a new print job: one more attempt, at most every 10 minutes */
+      if (new_job && (!last_try || now - last_try >= 600 / RECOVER_DIV)) {
+        next_try = now + 20 / RECOVER_DIV;
+        gave_up = 0;
+        logmsg("a job is waiting for the printer, trying USB recovery once more");
+      }
+      continue;
     }
     if (now < next_try) continue;
     attempt++;
+    last_try = now;
     logmsg("printer missing for %ld s, USB power-cycle attempt %d", (long)(now - missing_since), attempt);
-    if (recover_fd >= 0) {
-      /* unprivileged: ask the root helper (it only ever runs cfg_recover) */
-      if (write(recover_fd, "R", 1) != 1) logmsg("recover: helper not available");
+    request_recover();
+    if (attempt < RECOVER_MAX) {
+      next_try = now + recover_delay[attempt] - recover_delay[attempt - 1];
     } else {
-      run_recover();
+      gave_up = 1;
+      logmsg("printer still missing after %d attempts (switched off?); no more automatic "
+             "attempts until it is back or a new job is sent", attempt);
     }
-    next_try = now + (attempt == 1 ? 120 : attempt == 2 ? 600 : 1800);
   }
   return NULL;
 }

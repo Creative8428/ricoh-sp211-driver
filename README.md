@@ -59,8 +59,9 @@ without a driver. Tested on a GL.iNet Flint 2 (MT6000) with OpenWrt 25.12.
   Log on the router: `logread | grep sp211`.
 - **Automatic USB recovery:** if the printer drops off USB (e.g. its USB port hangs in
   energy-saver mode) and does not come back within 20 s, the server switches the router's USB port
-  power off and on (`/usr/libexec/sp211-usb-recover`), like unplugging the cable, and retries after
-  2 min, 10 min and every 30 min while it stays missing. USB controllers with other devices
+  power off and on (`/usr/libexec/sp211-usb-recover`), like unplugging the cable. At most 4 attempts
+  (after 20 s, 2 min, 10 min, 30 min), so a printer switched off for the night is left alone; a new
+  print job then allows one more attempt (at most every 10 min). USB controllers with other devices
   attached (storage, modems) are never touched. To turn it off:
   `touch /etc/sp211-airprint/no-auto-recover && /etc/init.d/sp211-airprint restart`.
 - **Security:** the server drops root after binding port 631 and runs as the unprivileged user
@@ -174,8 +175,9 @@ fără driver. Testat pe GL.iNet Flint 2 (MT6000), OpenWrt 25.12.
   Jurnal pe router: `logread | grep sp211`.
 - **Recuperare automată USB:** dacă imprimanta dispare de pe USB (de exemplu, portul ei USB se
   blochează în modul de economisire) și nu revine în 20 de secunde, serverul taie și repune curentul
-  pe portul USB al routerului (`/usr/libexec/sp211-usb-recover`), ca la scoaterea cablului, apoi
-  reîncearcă după 2 minute, 10 minute și la fiecare 30 de minute cât timp lipsește. Controlerele USB
+  pe portul USB al routerului (`/usr/libexec/sp211-usb-recover`), ca la scoaterea cablului. Cel mult
+  4 încercări (după 20 s, 2 min, 10 min, 30 min), ca o imprimantă oprită peste noapte să fie lăsată în
+  pace; un job nou de tipărire permite apoi încă o încercare (cel mult o dată la 10 minute). Controlerele USB
   la care e conectat și altceva (stocare, modem) nu sunt atinse niciodată. Dezactivare:
   `touch /etc/sp211-airprint/no-auto-recover && /etc/init.d/sp211-airprint restart`.
 - **Securitate:** după ce deschide portul 631, serverul renunță la root și rulează ca utilizatorul
