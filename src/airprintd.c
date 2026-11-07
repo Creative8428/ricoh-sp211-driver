@@ -878,6 +878,14 @@ done:
   else if (final == JS_ABORTED) logmsg("job %d: aborted (see messages above)", j->id);
 }
 
+/* seconds since an arbitrary point; unlike time() it does not jump when the
+ * router sets its clock via NTP after booting */
+static time_t mono_now(void) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return ts.tv_sec;
+}
+
 /* runs the recovery command and logs its output */
 static void run_recover(void) {
   char cmd[512];
@@ -904,7 +912,7 @@ static void *usb_monitor(void *arg) {
     sleep(5);
     struct stat st;
     int present = stat(cfg_device, &st) == 0;
-    time_t now = time(NULL);
+    time_t now = mono_now();
     if (present) {
       if (missing_since) logmsg("printer is back on USB%s", attempt ? " after recovery" : "");
       was_present = 1; missing_since = 0; attempt = 0;
