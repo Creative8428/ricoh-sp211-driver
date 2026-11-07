@@ -1,4 +1,7 @@
 *PPD-Adobe: "4.3"
+*% SPDX-License-Identifier: GPL-2.0-or-later
+*% Copyright (C) 2026 Alexandru Hrisca
+*% RICOH is a registered trademark of Ricoh Company, Ltd. This PPD is not made or endorsed by Ricoh.
 *% PPD for Ricoh SP 211 / SP 213 class GDI printers using the native
 *% rastertosp211 CUPS filter (Apple Silicon, no Rosetta required).
 *% Option keywords match those understood by the filter.

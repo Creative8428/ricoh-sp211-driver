@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 # Installs the native rastertosp211 filter and switches the printer queue to it.
 # Usage: sudo ./install.sh [queue-name]   (default queue: RICOH_SP_211)
 set -euo pipefail

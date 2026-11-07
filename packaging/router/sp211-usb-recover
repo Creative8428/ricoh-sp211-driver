@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 # sp211-usb-recover: power-cycles the USB host controller(s) of an OpenWrt
 # router so that a USB printer that stopped responding (e.g. after entering
 # energy-saver mode) is detected again. Unbinding the controller driver also

@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: GPL-2.0-or-later
+-- Copyright (C) 2026 Alexandru Hrisca
 -- "AirPrint on Router": installs or removes the Ricoh SP 211 AirPrint server
 -- on an OpenWrt router (printer connected to the router's USB port).
 -- Texts are in English, or in Romanian when the Mac's language is Romanian.

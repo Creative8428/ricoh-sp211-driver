@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 # Installs or removes the Ricoh SP 211 AirPrint server on OpenWrt.
 # Usage: sh setup.sh install|remove|status    (run as root on the router,
 # from the directory that contains sp211-airprintd and sp211-airprint.init)

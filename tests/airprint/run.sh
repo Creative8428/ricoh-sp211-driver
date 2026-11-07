@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 # AirPrint server regression test: runs sp211-airprintd locally, sends Apple
 # raster and PWG raster pages built from the golden CUPS rasters, and checks
 # that the image bands are byte-identical to the original Ricoh output.

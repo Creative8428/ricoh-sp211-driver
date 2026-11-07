@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 """Sends malicious requests to sp211-airprintd (built with AddressSanitizer by
 attack.sh) and checks that it rejects them and keeps working."""
 import socket, struct, sys, time, urllib.request

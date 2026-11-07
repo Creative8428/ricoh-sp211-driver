@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 # Regression test: runs the native filter on saved rasters and compares the
 # output byte-for-byte with what Ricoh's original filter produced.
 # Works without Rosetta or the original driver.

@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later
+ * Copyright (C) 2026 Alexandru Hrisca
+ */
 /* 24x24 clustered-dot threshold matrix used by the Ricoh SP 211/221 GDI
  * driver (measured from the output of the original rastertolilo2 filter).
  * A pixel with 8-bit ink value v is printed black when v >= matrix[y%24][x%24].

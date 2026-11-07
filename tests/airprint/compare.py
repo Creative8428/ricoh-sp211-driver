@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 """Compares two lilo2 streams: image bands (GDIB) must be identical; prints
 the differing header bytes (GDIJ/GJET/GDIP), which legitimately differ in
 paper/tray codes, title and time."""

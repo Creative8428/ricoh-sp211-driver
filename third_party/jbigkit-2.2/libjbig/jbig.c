@@ -25,6 +25,14 @@
  *
  *  If you want to use this program under different license conditions,
  *  then contact the author for an arrangement.
+ *
+ *  MODIFIED (GPL v2 section 2a notice):
+ *  2026-11-06, Alexandru Hrisca, for the ricoh-sp211-driver project
+ *  (https://github.com/Creative8428/ricoh-sp211-driver):
+ *  jbg_enc_out()/encode_sde() no longer calls jbg_buf_remove_zeros(), so the
+ *  trailing zero bytes of each stripe are kept (search for RICOH_FLUSH).
+ *  This makes the output byte-identical to the encoder in Ricoh's SP 211
+ *  printer driver. The produced data is still valid JBIG (T.82).
  */
 
 #ifdef DEBUG

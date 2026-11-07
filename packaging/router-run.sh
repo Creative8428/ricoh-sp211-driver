@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 # Mac side of the router setup: copies the bundle to an OpenWrt router over SSH
 # and runs setup.sh there. Usage: router-run.sh install|remove HOST [PORT] [USER]
 set -u

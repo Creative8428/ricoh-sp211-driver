@@ -118,6 +118,27 @@ driver's output (`src/dither_matrix.h`).
 - `tests/`: saved rasters and the exact output of the original driver, for tests that also run
   without Rosetta
 
+### License
+Copyright (C) 2026 Alexandru Hrisca.
+
+This project is free software, distributed under the **GNU General Public License, version 2 or
+(at your option) any later version** (GPL-2.0-or-later); see [`LICENSE`](LICENSE). It comes with
+**no warranty**. Both programs (`rastertosp211` and `sp211-airprintd`) are linked with JBIG-KIT,
+which is GPL-licensed, so they are distributed under the GPL as well. The complete source code is
+in this repository: <https://github.com/Creative8428/ricoh-sp211-driver>.
+
+**Third-party code** (details in [`third_party/README.md`](third_party/README.md)):
+
+| Component | Author | License | Modified |
+|---|---|---|---|
+| JBIG-KIT 2.2 (`third_party/jbigkit-2.2`) | Markus Kuhn | GPL-2.0-or-later | yes, one change in `libjbig/jbig.c`, dated in its header |
+
+No code from Ricoh is included. The PPD was written for this project; the dither matrix and the
+reference outputs in `tests/golden` are measurements of the original driver's output.
+
+**Trademarks:** RICOH is a registered trademark of Ricoh Company, Ltd. AirPrint, macOS, iPhone and
+iPad are trademarks of Apple Inc. This project is not affiliated with or endorsed by Ricoh or Apple.
+
 ---
 
 ## Română
@@ -234,3 +255,24 @@ din ieșirea driverului original (`src/dither_matrix.h`).
   original și de Rosetta; sunt păstrate ca documentație).
 - `tests/`: rastere salvate și rezultatele exacte ale driverului original, pentru teste
   care funcționează și fără Rosetta.
+
+### Licență
+Copyright (C) 2026 Alexandru Hrisca.
+
+Proiectul este software liber, distribuit sub **GNU General Public License, versiunea 2 sau (la
+alegere) orice versiune ulterioară** (GPL-2.0-or-later); vezi [`LICENSE`](LICENSE). Vine **fără nicio
+garanție**. Ambele programe (`rastertosp211` și `sp211-airprintd`) sunt legate cu JBIG-KIT, care e sub
+GPL, deci sunt distribuite tot sub GPL. Codul sursă complet se află în acest repository:
+<https://github.com/Creative8428/ricoh-sp211-driver>.
+
+**Cod terț** (detalii în [`third_party/README.md`](third_party/README.md)):
+
+| Componentă | Autor | Licență | Modificată |
+|---|---|---|---|
+| JBIG-KIT 2.2 (`third_party/jbigkit-2.2`) | Markus Kuhn | GPL-2.0-or-later | da, o singură modificare în `libjbig/jbig.c`, datată în antetul fișierului |
+
+Proiectul nu conține cod Ricoh. PPD-ul a fost scris pentru acest proiect, iar matricea de dithering și
+rezultatele de referință din `tests/golden` sunt măsurători ale ieșirii driverului original.
+
+**Mărci înregistrate:** RICOH este marcă înregistrată a Ricoh Company, Ltd. AirPrint, macOS, iPhone și
+iPad sunt mărci ale Apple Inc. Proiectul nu este afiliat cu Ricoh sau Apple și nu este aprobat de acestea.

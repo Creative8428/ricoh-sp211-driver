@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later
+ * Copyright (C) 2026 Alexandru Hrisca
+ */
 /*
  * rastertosp211 - native CUPS filter for Ricoh SP 211 / SP 213 / SP 220 / SP 221
  * class GDI printers (the "lilo2" GDIJ stream format).

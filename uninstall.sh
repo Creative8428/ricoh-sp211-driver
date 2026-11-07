@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 # Restores the original Ricoh PPD (and filter) for the queue and removes the native filter.
 # Usage: sudo ./uninstall.sh [queue-name]
 set -euo pipefail

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 import sys,struct,os
 d=open(sys.argv[1],'rb').read(); i=0; n=0; out=sys.argv[2] if len(sys.argv)>2 else None
 while i<len(d):

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 """Builds full-page AirPrint test documents (Apple raster / PWG raster, sgray 8-bit,
 600 dpi) from a CUPS raster produced for the Ricoh PPD (K 8-bit, imageable area
 only). The imageable area is placed at the PPD margin (100 px), so the AirPrint

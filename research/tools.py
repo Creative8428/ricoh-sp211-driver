@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 import re
 import struct, subprocess, os, tempfile
 J='/opt/homebrew/opt/jbigkit/bin/'

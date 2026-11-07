@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 from tools import *
 import subprocess,sys,glob,os,random
 NEW=os.path.abspath('../driver/build/rastertosp211')

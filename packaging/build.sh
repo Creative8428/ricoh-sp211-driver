@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 # Builds dist/RICOH-SP211-Native-<version>.dmg containing the installer package, the uninstaller app and the router AirPrint app.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -14,6 +16,7 @@ make -s router   # static AirPrint server for OpenWrt routers (needs zig)
 R=$WORK/root
 install -d "$R/Library/Printers/SP211Native/Filters" "$R/Library/Printers/PPDs/Contents/Resources"
 install -m 755 build/rastertosp211 "$R/Library/Printers/SP211Native/Filters/rastertosp211"
+install -m 644 LICENSE "$R/Library/Printers/SP211Native/LICENSE"
 gzip -9 -n -c ppd/RICOH-SP-211-native.ppd > "$R/Library/Printers/PPDs/Contents/Resources/RICOH SP 211 native.ppd.gz"
 chmod 644 "$R/Library/Printers/PPDs/Contents/Resources/RICOH SP 211 native.ppd.gz"
 
@@ -37,6 +40,7 @@ install -m 644 build/router/sp211-airprint-router.tar.gz "$A/Contents/Resources/
 codesign --force --deep --sign - "$A" 2>/dev/null
 
 cp packaging/ReadMe.txt "$S/Read Me.txt"
+cp LICENSE "$S/License.txt"   # GPL v2: the license travels with the binaries
 
 mkdir -p "$OUT"; DMG="$OUT/RICOH-SP211-Native-$VERSION.dmg"; rm -f "$DMG"
 hdiutil create -quiet -volname "Ricoh SP 211 Driver" -srcfolder "$S" -fs HFS+ -format UDZO "$DMG"

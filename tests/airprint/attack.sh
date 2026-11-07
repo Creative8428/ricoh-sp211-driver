@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 # Security regression test: builds sp211-airprintd with AddressSanitizer, sends
 # malicious requests (tests/airprint/attack.py) and fails on any memory error.
 set -u

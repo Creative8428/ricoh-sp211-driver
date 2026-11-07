@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 # minimal one-page PDF generator with text + rectangle
 import sys
 def pdf(path, content):

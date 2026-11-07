@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: GPL-2.0-or-later
+-- Copyright (C) 2026 Alexandru Hrisca
 -- Uninstaller app for the native Ricoh SP 211 driver.
 -- Runs Contents/Resources/uninstall.sh with administrator privileges.
 -- Texts are in English, or in Romanian when the Mac's language is Romanian.

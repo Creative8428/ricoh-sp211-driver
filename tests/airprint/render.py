@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 """Renders a lilo2 stream to PNG previews (one per page, 1/6 scale) using jbgtopbm."""
 import struct, subprocess, sys, zlib, re
 JBG = '/opt/homebrew/opt/jbigkit/bin/jbgtopbm'

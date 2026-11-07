@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 # SSH_ASKPASS helper: asks for the router password, or confirms the router's
 # host key on the first connection, in a macOS dialog.
 # SP211_LANG=ro shows Romanian texts, anything else English.

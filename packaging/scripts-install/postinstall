@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 export LANG=C LC_ALL=C   # lpstat output must not be localized
 # Runs as root after the payload (filter + PPD) is installed.
 # 1. Switches existing Ricoh SP 211 queues from Ricoh's Intel-only filter to the native one.

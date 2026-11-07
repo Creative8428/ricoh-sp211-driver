@@ -1,3 +1,6 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later
+ * Copyright (C) 2026 Alexandru Hrisca
+ */
 /*
  * sp211-airprintd - minimal IPP Everywhere / AirPrint server for the Ricoh SP 211.
  *

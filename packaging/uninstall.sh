@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2026 Alexandru Hrisca
 export LANG=C LC_ALL=C   # lpstat output must not be localized
 # Uninstaller: restores the original PPD of switched queues, removes queues
 # the installer created, and deletes the native filter and PPD.
