@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: GPL-2.0-or-later
+     Copyright (C) 2026 Alexandru Hrisca -->
 <installer-gui-script minSpecVersion="2">
   <title>SU_TITLE</title>
   <welcome file="welcome.html" mime-type="text/html"/>

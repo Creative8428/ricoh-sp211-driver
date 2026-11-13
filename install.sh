@@ -17,6 +17,7 @@ QPPD=/etc/cups/ppd/$QUEUE.ppd
 
 install -d -o root -g wheel -m 755 "$DEST/Filters" "$DEST/backup"
 install -o root -g wheel -m 755 "$HERE/build/rastertosp211" "$FILTER"
+install -o root -g wheel -m 644 "$HERE/LICENSE" "$DEST/LICENSE"   # the license stays next to the filter
 
 # keep the original PPD once, so uninstall.sh can restore it
 [ -f "$DEST/backup/$QUEUE.ppd" ] || cp "$QPPD" "$DEST/backup/$QUEUE.ppd"
