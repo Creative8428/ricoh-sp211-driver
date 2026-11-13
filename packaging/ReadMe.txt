@@ -45,8 +45,11 @@ Note: Ricoh's original driver needs Rosetta, so it no longer works on macOS 28.
 LICENSE AND SOURCE CODE
 Copyright (C) 2026 Alexandru Hrisca. Free software under the GNU General
 Public License, version 2 or later (see "License.txt"), with no warranty.
-It includes JBIG-KIT by Markus Kuhn (GPL v2+, slightly modified).
-Complete source code: https://github.com/Creative8428/ricoh-sp211-driver
+It includes JBIG-KIT by Markus Kuhn (GPL v2+, slightly modified). The
+router program also contains musl libc and the Zig runtime (MIT license,
+see "Third-Party Licenses.txt").
+Complete source code of this version (__VERSION__):
+https://github.com/Creative8428/ricoh-sp211-driver/tree/__SOURCE_REF__
 RICOH is a registered trademark of Ricoh Company, Ltd. This software is
 not made or endorsed by Ricoh or Apple.
 
@@ -99,7 +102,10 @@ Atenție: driverul Ricoh original are nevoie de Rosetta, deci nu mai merge pe ma
 LICENȚĂ ȘI COD SURSĂ
 Copyright (C) 2026 Alexandru Hrisca. Software liber sub GNU General Public
 License, versiunea 2 sau ulterioară (vezi „License.txt”), fără nicio garanție.
-Include JBIG-KIT de Markus Kuhn (GPL v2+, ușor modificat).
-Codul sursă complet: https://github.com/Creative8428/ricoh-sp211-driver
+Include JBIG-KIT de Markus Kuhn (GPL v2+, ușor modificat). Programul
+pentru router conține și musl libc și biblioteca de rulare Zig (licență
+MIT, vezi „Third-Party Licenses.txt”).
+Codul sursă complet al acestei versiuni (__VERSION__):
+https://github.com/Creative8428/ricoh-sp211-driver/tree/__SOURCE_REF__
 RICOH este marcă înregistrată a Ricoh Company, Ltd. Acest software nu este
 realizat sau aprobat de Ricoh sau Apple.

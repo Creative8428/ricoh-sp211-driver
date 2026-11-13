@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later
- * Copyright (C) 2026 Alexandru Hrisca
+ * Copyright (C) 2026 Alexandru Hrisca (this file as written for the project).
+ * The threshold values are measurements of the output of Ricoh's driver, as
+ * described below; no copyright is claimed on the values themselves.
  */
 /* 24x24 clustered-dot threshold matrix used by the Ricoh SP 211/221 GDI
  * driver (measured from the output of the original rastertolilo2 filter).

@@ -110,7 +110,7 @@ driver's output (`src/dither_matrix.h`).
   `packaging/router/`: the OpenWrt setup script and service
 - `third_party/jbigkit-2.2`: Markus Kuhn's JBIG-KIT library (GPL v2+), with one change in
   `libjbig/jbig.c` (marked `RICOH_FLUSH`): it keeps the trailing zero bytes of each band, exactly
-  like Ricoh's encoder. This driver is therefore distributed under the GPL v2+.
+  like Ricoh's encoder (see [License](#license)).
 - `ppd/`: own PPD for the SP 211 (same options as Ricoh's PPD); `packaging/`: the `.pkg`
   installer, the apps and the disk image
 - `research/`: the Python scripts used to decode the format (they need Ricoh's original driver and
@@ -127,11 +127,11 @@ This project is free software, distributed under the **GNU General Public Licens
 which is GPL-licensed, so they are distributed under the GPL as well. The complete source code is
 in this repository: <https://github.com/Creative8428/ricoh-sp211-driver>.
 
-**Third-party code** (details in [`third_party/README.md`](third_party/README.md)):
-
-| Component | Author | License | Modified |
-|---|---|---|---|
-| JBIG-KIT 2.2 (`third_party/jbigkit-2.2`) | Markus Kuhn | GPL-2.0-or-later | yes, one change in `libjbig/jbig.c`, dated in its header |
+**Third-party code:** JBIG-KIT (GPL-2.0-or-later, with one dated change) is compiled into both
+programs, and the static router build of `sp211-airprintd` also contains musl libc and the Zig
+compiler runtime (both MIT). Versions, licenses and changes are listed in one place,
+[`third_party/README.md`](third_party/README.md); the disk image ships them as `License.txt` and
+`Third-Party Licenses.txt`, and its `Read Me.txt` names the exact commit it was built from.
 
 No code from Ricoh is included. The PPD was written for this project; the dither matrix and the
 reference outputs in `tests/golden` are measurements of the original driver's output.
@@ -248,7 +248,7 @@ din ieșirea driverului original (`src/dither_matrix.h`).
   `packaging/router/`: scriptul și serviciul pentru OpenWrt
 - `third_party/jbigkit-2.2`: biblioteca JBIG-KIT a lui Markus Kuhn (GPL v2+), cu o singură modificare
   în `libjbig/jbig.c` (marcată `RICOH_FLUSH`): nu elimină octeții 0 de la finalul fiecărei benzi,
-  exact ca encoderul Ricoh. Prin urmare, acest driver este distribuit sub GPL v2+.
+  exact ca encoderul Ricoh (vezi [Licență](#licență)).
 - `ppd/`: PPD propriu pentru SP 211 (aceleași opțiuni ca PPD-ul Ricoh); `packaging/`: instalatorul
   `.pkg`, aplicațiile și imaginea DMG
 - `research/`: scripturile Python folosite la descifrarea formatului (au nevoie de driverul Ricoh
@@ -265,11 +265,12 @@ garanție**. Ambele programe (`rastertosp211` și `sp211-airprintd`) sunt legate
 GPL, deci sunt distribuite tot sub GPL. Codul sursă complet se află în acest repository:
 <https://github.com/Creative8428/ricoh-sp211-driver>.
 
-**Cod terț** (detalii în [`third_party/README.md`](third_party/README.md)):
-
-| Componentă | Autor | Licență | Modificată |
-|---|---|---|---|
-| JBIG-KIT 2.2 (`third_party/jbigkit-2.2`) | Markus Kuhn | GPL-2.0-or-later | da, o singură modificare în `libjbig/jbig.c`, datată în antetul fișierului |
+**Cod terț:** JBIG-KIT (GPL-2.0-or-later, cu o singură modificare, datată) este compilat în ambele
+programe, iar varianta statică pentru router a lui `sp211-airprintd` conține și musl libc și
+biblioteca de rulare a compilatorului Zig (ambele MIT). Versiunile, licențele și modificările sunt
+trecute într-un singur loc, [`third_party/README.md`](third_party/README.md); imaginea DMG le
+include ca `License.txt` și `Third-Party Licenses.txt`, iar `Read Me.txt` indică exact commit-ul din
+care a fost construită.
 
 Proiectul nu conține cod Ricoh. PPD-ul a fost scris pentru acest proiect, iar matricea de dithering și
 rezultatele de referință din `tests/golden` sunt măsurători ale ieșirii driverului original.
