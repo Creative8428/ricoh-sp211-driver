@@ -10,6 +10,12 @@ build/rastertosp211: src/rastertosp211.c src/lilo2.h src/dither_matrix.h $(CORE)
 	mkdir -p build
 	$(CC) $(CFLAGS) -o $@ src/rastertosp211.c $(CORE) $(LDLIBS)
 
+# Decodes a print stream and reports, for each page, its size and the share of black dots.
+# Plain C, no CUPS: builds on macOS and Linux.
+build/lilo2check: tools/lilo2check.c $(JBIG)/jbig.c $(JBIG)/jbig_ar.c
+	mkdir -p build
+	$(CC) -O2 -Wall -I$(JBIG) -o $@ tools/lilo2check.c $(JBIG)/jbig.c $(JBIG)/jbig_ar.c
+
 clean:
 	rm -rf build dist
 
