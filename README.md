@@ -117,6 +117,10 @@ driver's output (`src/dither_matrix.h`).
   Rosetta; kept as documentation)
 - `tests/`: saved rasters and the exact output of the original driver, for tests that also run
   without Rosetta
+- `tools/lilo2check.c`: decodes a print stream and reports, for each page, its size and the
+  share of black dots (`make build/lilo2check`, then `build/lilo2check FILE`)
+- `docs/STATUS_PROTOCOL.md`: how the printer reports toner, paper and its page counter over USB
+  (not used by the driver yet)
 
 ### License
 Copyright (C) 2026 Alexandru Hrisca.
@@ -255,6 +259,10 @@ din ieșirea driverului original (`src/dither_matrix.h`).
   original și de Rosetta; sunt păstrate ca documentație).
 - `tests/`: rastere salvate și rezultatele exacte ale driverului original, pentru teste
   care funcționează și fără Rosetta.
+- `tools/lilo2check.c`: decodează un flux de imprimare și afișează, pentru fiecare pagină,
+  dimensiunea și proporția de puncte negre (`make build/lilo2check`, apoi `build/lilo2check FILE`)
+- `docs/STATUS_PROTOCOL.md`: cum raportează imprimanta tonerul, hârtia și contorul de pagini prin USB
+  (încă nefolosit de driver)
 
 ### Licență
 Copyright (C) 2026 Alexandru Hrisca.
